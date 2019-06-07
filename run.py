@@ -25,13 +25,13 @@ def parse_args():
     parser.add_argument('--d', type=int, default=128,
                         help='Dimension')
 
-    parser.add_argument('--ml', type=int, default=5,
+    parser.add_argument('--ml', type=int, default=500,
                         help='Maximum lenght of sequence')
 
     parser.add_argument('--mw', type=int, default=10000,
                         help='Maximum words')
 
-    parser.add_argument('--epochs', type=int, default=1,
+    parser.add_argument('--epochs', type=int, default=100,
                         help='Epoch number')
 
     parser.add_argument('--dm', type=str, default="tf",
