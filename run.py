@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument('--path', type=str, help='Path to data', default="")
 
     parser.add_argument('--model', type=str,
-                        help='Model Name: lstm', default="lstm")
+                        help='Model Name: lstm', default="adv_lstm")
 
     parser.add_argument('--data', type=str,
                         help='Dataset name', default="imdb")
@@ -28,8 +28,14 @@ def parse_args():
     parser.add_argument('--ml', type=int, default=5,
                         help='Maximum lenght of sequence')
 
+    parser.add_argument('--mw', type=int, default=10000,
+                        help='Maximum words')
+
     parser.add_argument('--epochs', type=int, default=100,
                         help='Epoch number')
+
+    parser.add_argument('--dm', type=str, default="idf",
+                        help='Discriminator mode: tf or idf')
 
     return parser.parse_args()
 
@@ -43,14 +49,15 @@ if __name__ == '__main__':
     dataset = args.data
     modelName = args.model
     dim = args.d
+    max_words = args.mw
     maxlen = args.ml
     epochs = args.epochs
+    discMode = args.dm
 
 
 
     if dataset == "imdb":
 
-        max_words = 10000
         x_train, y_train, x_test, y_test = get_imbd(max_words, maxlen)
 
 
@@ -64,7 +71,7 @@ if __name__ == '__main__':
 
 
     if "adv" in modelName:
-        disc_x, disc_y = get_discriminator_train_data(x_train, x_test)
+        disc_x, disc_y = get_discriminator_train_data(x_train, x_test, discMode)
 
 
     for epoch in range(epochs):
@@ -78,7 +85,7 @@ if __name__ == '__main__':
             sample_disc_y  = disc_y[idx]
 
             # Train the main model
-            his = advModel.fit([x_train, sample_disc_x], [y_train, sample_disc_y], batch_size=256, verbose=0)
+            his = advModel.fit([x_train, sample_disc_x], [y_train, sample_disc_y], batch_size=256, verbose=0, shuffle=True)
 
             # Train the discriminator
             adv_loss = discriminator.train_on_batch(sample_disc_x, sample_disc_y)
@@ -93,7 +100,7 @@ if __name__ == '__main__':
         else:
 
             t1 = time()
-            his = model.fit(x_train, y_train, batch_size=256, verbose=0)
+            his = model.fit(x_train, y_train, batch_size=256, verbose=0, shuffle=True)
             t2 = time()
             res = model.test_on_batch(x_test, y_test)
             t3 = time()
