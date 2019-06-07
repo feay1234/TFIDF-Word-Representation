@@ -6,7 +6,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 def get_imbd(max_words=10000, maxlen=500):
     print('Loading data...')
+    old = np.load
+    np.load = lambda *a, **k: old(*a, **k, allow_pickle=True)
+
     (x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_words)
+
+    np.load = old
+    del (old)
     x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
     x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
 
