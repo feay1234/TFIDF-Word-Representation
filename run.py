@@ -6,7 +6,7 @@ from keras.preprocessing.sequence import pad_sequences
 import argparse
 from time import time
 from Dataset import *
-from model.LSTM import *
+import LSTM
 from datetime import datetime
 
 
