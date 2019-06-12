@@ -24,23 +24,29 @@ def get_lstm(dim, max_words, maxlen):
 def get_adv_lstm(dim, max_word, maxlen):
 
     wordInput = Input(shape=(1,))
+    disInput = Input(shape=(dim,))
     seqInput = Input(shape=(maxlen,))
 
     emb = Embedding(max_word, dim)
 
     wordEmb = Flatten()(emb(wordInput))
+
+
+    encoder = Model(wordInput, wordEmb)
+
+
     seqEmb = emb(seqInput)
 
     disDense1 = Dense(int(dim * 1.5), activation="relu")
     disDense2 = Dense(1, activation="sigmoid")
 
-    dout = disDense2(disDense1(wordEmb))
+    dout = disDense2(disDense1(disInput))
 
-    discriminator = Model(wordInput, dout)
+    discriminator = Model(disInput, dout)
 
     discriminator.compile(loss='binary_crossentropy',
                           optimizer='adam',
-                          metrics=['accuracy'])
+                          metrics=['accuracy'], loss_weights=[-0.1])
 
     lstm = LSTM(dim, dropout=0.2, recurrent_dropout=0.2)
 
@@ -55,12 +61,20 @@ def get_adv_lstm(dim, max_word, maxlen):
 
     discriminator.trainable = False
 
-    advModel = Model([seqInput, wordInput], [mout, dout])
+    advModel = Model([seqInput, disInput], [mout, dout])
 
     advModel.compile(loss=['binary_crossentropy', 'binary_crossentropy'],
                   optimizer='adam',
-                  loss_weights=[0.9, 0.1],
+                  loss_weights=[1, -0.1],
                   metrics=['accuracy'])
 
+    return advModel, model, encoder, discriminator
 
-    return advModel, model, discriminator
+# advModel, model, encoder, discriminator = get_adv_lstm(2, 10, 3)
+# import numpy as np
+# print(encoder.predict(np.arange(10)).shape)
+# print(model.predict(np.random.randint(10, size=(10,3))).shape)
+#
+# x_test = np.random.randint(10, size=(10,3))
+# y_test = np.random.randint(2, size=(10))
+# print(model.test_on_batch(x_test, y_test))
