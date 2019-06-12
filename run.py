@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument('--path', type=str, help='Path to data', default="")
 
     parser.add_argument('--model', type=str,
-                        help='Model Name: lstm', default="lstm")
+                        help='Model Name: lstm', default="adv_lstm")
 
     parser.add_argument('--data', type=str,
                         help='Dataset name', default="imdb")
@@ -25,10 +25,10 @@ def parse_args():
     parser.add_argument('--d', type=int, default=256,
                         help='Dimension')
 
-    parser.add_argument('--ml', type=int, default=10,
+    parser.add_argument('--ml', type=int, default=500,
                         help='Maximum lenght of sequence')
 
-    parser.add_argument('--mw', type=int, default=5000,
+    parser.add_argument('--mw', type=int, default=50000,
                         help='Maximum words')
 
     parser.add_argument('--epochs', type=int, default=100,
