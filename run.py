@@ -6,9 +6,11 @@ from keras.preprocessing.sequence import pad_sequences
 import argparse
 from time import time
 from Dataset import *
-from LSTM import *
+from Models import *
 from datetime import datetime
 from sklearn.utils import class_weight
+
+from utils import get_pretrain_embeddings
 
 
 def parse_args():
@@ -17,13 +19,15 @@ def parse_args():
     parser.add_argument('--path', type=str, help='Path to data', default="")
 
     parser.add_argument('--model', type=str,
-                        help='Model Name: lstm', default="adv_lstm")
+                        help='Model Name: lstm', default="bilstm")
 
     parser.add_argument('--data', type=str,
-                        help='Dataset name', default="imdb")
+                        help='Dataset name', default="QQP")
 
     parser.add_argument('--d', type=int, default=128,
                         help='Dimension')
+    parser.add_argument('--ed', type=int, default=300,
+                        help='Embedding Dimension')
 
     parser.add_argument('--ml', type=int, default=10,
                         help='Maximum lenght of sequence')
@@ -38,7 +42,7 @@ def parse_args():
                         help='Discriminator mode: tf or idf')
 
     parser.add_argument('--mode', type=int, default="3",
-                        help='Mode: ')
+                        help='Mode:')
 
     return parser.parse_args()
 
@@ -57,9 +61,18 @@ if __name__ == '__main__':
     epochs = args.epochs
     discMode = args.dm
     modelMode = args.mode
+    emb_dim = args.ed
+
+    isPairData = True if dataset in ["QQP"] else False
+    isPairModel = True if modelName in ["bilstm"] else False
+    assert isPairData == isPairModel
 
     if dataset == "imdb":
         x_train, y_train, x_test, y_test = get_imbd(max_words, maxlen)
+
+    elif dataset == "QQP":
+        x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen)
+        embedding_layer = get_pretrain_embeddings(maxlen, emb_dim, maxlen, word_index)
 
     print("Load model")
     runName = "%s_d%d_w%d_ml%d_%s_m%d_%s" % (
@@ -67,12 +80,14 @@ if __name__ == '__main__':
 
     if modelName == "lstm":
         model = get_lstm(dim, max_words, maxlen)
+    elif modelName == "bilstm":
+        model = get_pair_bilstm_maxpool(dim, max_words, maxlen)
     elif modelName == "adv_lstm":
         advModel, model, encoder, discriminator = get_adv_lstm(dim, max_words, maxlen, modelMode)
 
     class_weights = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
     if "adv" in modelName:
-        disc_x, disc_y = get_discriminator_train_data(x_train, x_test, discMode)
+        disc_x, disc_y = get_discriminator_train_data(x_train, x_test, discMode, isPairData)
         disc_class_weights = class_weight.compute_class_weight('balanced', np.unique(disc_y), disc_y)
         print(disc_class_weights)
 
@@ -124,8 +139,8 @@ if __name__ == '__main__':
             output = "Epoch %d, train[%.1f s], loss: %f, acc: %f, test[%.1f s]" % (
                 epoch, t2 - t1, his.history['loss'][0], res[1], t3 - t2)
 
-            with open(path+"out/%s.out" % runName, "a") as myfile:
-                myfile.write(output+"\n")
+            with open(path + "out/%s.out" % runName, "a") as myfile:
+                myfile.write(output + "\n")
 
             print(output)
 

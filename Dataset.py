@@ -4,8 +4,6 @@ import numpy as np
 from keras_preprocessing.sequence import pad_sequences
 from sklearn.feature_extraction.text import TfidfVectorizer
 from keras.preprocessing.text import Tokenizer
-
-
 import pandas as pd
 
 def get_imbd(max_words=10000, maxlen=500):
@@ -24,17 +22,18 @@ def get_imbd(max_words=10000, maxlen=500):
 
 
 
-MAX_SEQUENCE_LENGTH = 1000
-MAX_NUM_WORDS = 20000
-EMBEDDING_DIM = 300
+# MAX_SEQUENCE_LENGTH = 1000
+# MAX_NUM_WORDS = 20000
+# EMBEDDING_DIM = 300
 
-def get_datasets(path, names):
+def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH):
 
-    if "QQP":
+    if dataset == "QQP":
 
-        df = pd.read_csv(path+"data/glue_data/QQP/train.tsv", sep="\t", error_bad_lines=False )
-        df_val = pd.read_csv(path+"data/glue_data/QQP/dev.tsv", sep="\t", error_bad_lines=False)
-        df_test = pd.read_csv(path+"data/glue_data/QQP/test.tsv", sep="\t", error_bad_lines=False)
+        df = pd.read_csv(path+"data/glue_data/QQP/train.tsv", sep="\t", error_bad_lines=False, nrows=1000)
+        df_val = pd.read_csv(path+"data/glue_data/QQP/dev.tsv", sep="\t", error_bad_lines=False, nrows=1000)
+        # there is no label on test set
+        # df_test = pd.read_csv(path+"data/glue_data/QQP/test.tsv", sep="\t", error_bad_lines=False, nrows=1000)
 
         df.question1 = df.question1.astype(str)
         df.question2 = df.question2.astype(str)
@@ -42,10 +41,11 @@ def get_datasets(path, names):
         df_val.question1 = df_val.question1.astype(str)
         df_val.question2 = df_val.question2.astype(str)
 
-        df_test.question1 = df_test.question1.astype(str)
-        df_test.question2 = df_test.question2.astype(str)
+        # df_test.question1 = df_test.question1.astype(str)
+        # df_test.question2 = df_test.question2.astype(str)
 
-        corpus = df.question1.tolist() + df.question2.tolist() + df_val.question1.tolist() + df_val.question2.tolist() + df_test.question1.tolist() + df_test.question2.tolist()
+        # corpus = df.question1.tolist() + df.question2.tolist() + df_val.question1.tolist() + df_val.question2.tolist() + df_test.question1.tolist() + df_test.question2.tolist()
+        corpus = df.question1.tolist() + df.question2.tolist() + df_val.question1.tolist() + df_val.question2.tolist()
 
         # create the tokenizer
         t = Tokenizer()
@@ -62,8 +62,8 @@ def get_datasets(path, names):
         x1_val = tokenizer.texts_to_sequences(df_val.question1.tolist())
         x2_val = tokenizer.texts_to_sequences(df_val.question2.tolist())
 
-        x1_test = tokenizer.texts_to_sequences(df_test.question1.tolist())
-        x2_test = tokenizer.texts_to_sequences(df_test.question2.tolist())
+        # x1_test = tokenizer.texts_to_sequences(df_test.question1.tolist())
+        # x2_test = tokenizer.texts_to_sequences(df_test.question2.tolist())
 
         x1_train = pad_sequences(x1_train, maxlen=MAX_SEQUENCE_LENGTH)
         x2_train = pad_sequences(x2_train, maxlen=MAX_SEQUENCE_LENGTH)
@@ -73,26 +73,30 @@ def get_datasets(path, names):
         x2_val = pad_sequences(x2_val, maxlen=MAX_SEQUENCE_LENGTH)
         x_val = [x1_val, x2_val]
 
-        x1_test = pad_sequences(x1_test, maxlen=MAX_SEQUENCE_LENGTH)
-        x2_test = pad_sequences(x2_test, maxlen=MAX_SEQUENCE_LENGTH)
-        x_test = [x1_test, x2_test]
+        # x1_test = pad_sequences(x1_test, maxlen=MAX_SEQUENCE_LENGTH)
+        # x2_test = pad_sequences(x2_test, maxlen=MAX_SEQUENCE_LENGTH)
+        # x_test = [x1_test, x2_test]
 
         y_train = df.is_duplicate.values
         y_val = df_val.is_duplicate.values
-        y_test = df_test.is_duplicate.values
+        # print(df_test.columns)
+        # y_test = df_test.is_duplicate.values
 
         word_index = tokenizer.word_index
         print('Found %s unique tokens.' % len(word_index))
 
-        return x_train, x_test, x_val, y_val, x_test, y_test, word_index
+        # return x_train, x_test, x_val, y_val, x_test, y_test, word_index
+        return x_train, y_train, x_val, y_val, word_index
 
 
 
-def get_discriminator_train_data(x_train, x_test, mode="tf"):
+def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
 
+    # extract sentence-pair data or sentence data
+    corpus = np.concatenate([x_train[0], x_train[1], x_test[0], x_test[1]]) if isPairData else np.concatenate([x_train, x_test])
     if mode == "tf":
         term_frequency = {}
-        for i in np.concatenate([x_train, x_test]):
+        for i in corpus:
             for j in i:
                 if j in term_frequency:
                     term_frequency[j] += 1
