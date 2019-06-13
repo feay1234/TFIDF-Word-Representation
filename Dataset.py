@@ -30,8 +30,10 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH):
 
     if dataset == "QQP":
 
-        df = pd.read_csv(path+"data/glue_data/QQP/train.tsv", sep="\t", error_bad_lines=False, nrows=1000)
-        df_val = pd.read_csv(path+"data/glue_data/QQP/dev.tsv", sep="\t", error_bad_lines=False, nrows=1000)
+        # df = pd.read_csv(path+"data/glue_data/QQP/train.tsv", sep="\t", error_bad_lines=False, nrows=100)
+        # df_val = pd.read_csv(path+"data/glue_data/QQP/dev.tsv", sep="\t", error_bad_lines=False, nrows=100)
+        df = pd.read_csv(path+"data/glue_data/QQP/train.tsv", sep="\t", error_bad_lines=False)
+        df_val = pd.read_csv(path+"data/glue_data/QQP/dev.tsv", sep="\t", error_bad_lines=False)
         # there is no label on test set
         # df_test = pd.read_csv(path+"data/glue_data/QQP/test.tsv", sep="\t", error_bad_lines=False, nrows=1000)
 

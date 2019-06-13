@@ -23,12 +23,12 @@ def get_lstm(dim, max_words, maxlen):
 # InferSent, Facebook https://arxiv.org/pdf/1705.02364.pdf
 
 
-def get_pair_bilstm_maxpool(dim, max_words, maxlen):
+def get_pair_bilstm_maxpool(dim, max_words, maxlen, embedding_layer):
     uInput = Input(shape=(maxlen,))
     vInput = Input(shape=(maxlen,))
 
     encoder = Sequential()
-    encoder.add(Embedding(max_words, 128, input_length=maxlen))
+    encoder.add(embedding_layer)
     encoder.add(Bidirectional(LSTM(64, return_sequences=True)))
     encoder.add(GlobalMaxPooling1D())
 

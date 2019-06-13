@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     elif dataset == "QQP":
         x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen)
-        embedding_layer = get_pretrain_embeddings(maxlen, emb_dim, maxlen, word_index)
+        embedding_layer = get_pretrain_embeddings(max_words, emb_dim, maxlen, word_index)
 
     print("Load model")
     runName = "%s_d%d_w%d_ml%d_%s_m%d_%s" % (
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     if modelName == "lstm":
         model = get_lstm(dim, max_words, maxlen)
     elif modelName == "bilstm":
-        model = get_pair_bilstm_maxpool(dim, max_words, maxlen)
+        model = get_pair_bilstm_maxpool(dim, max_words, maxlen, embedding_layer)
     elif modelName == "adv_lstm":
         advModel, model, encoder, discriminator = get_adv_lstm(dim, max_words, maxlen, modelMode)
 
