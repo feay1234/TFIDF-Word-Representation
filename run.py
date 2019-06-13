@@ -64,9 +64,9 @@ if __name__ == '__main__':
     modelMode = args.mode
     emb_dim = args.ed
 
-    isPairData = True if dataset in ["QQP"] else False
-    isPairModel = True if modelName in ["bilstm"] else False
-    assert isPairData == isPairModel
+    # isPairData = True if dataset in ["QQP"] else False
+    # isPairModel = True if modelName in ["bilstm"] else False
+    # assert isPairData == isPairModel
 
     if dataset == "imdb":
         x_train, y_train, x_test, y_test = get_imbd(max_words, maxlen)
