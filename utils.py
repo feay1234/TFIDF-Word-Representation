@@ -4,10 +4,10 @@ import os
 from keras.initializers import Constant
 from keras.layers import Embedding
 
-BASE_DIR = 'data/'
-GLOVE_DIR = os.path.join(BASE_DIR, 'w2v')
 
-def get_pretrain_embeddings(MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LENGTH, word_index):
+def get_pretrain_embeddings(path, MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LENGTH, word_index):
+    BASE_DIR = path + 'data/'
+    GLOVE_DIR = os.path.join(BASE_DIR, 'w2v')
     print('Indexing word vectors.')
 
     embeddings_index = {}

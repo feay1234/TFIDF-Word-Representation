@@ -64,8 +64,8 @@ if __name__ == '__main__':
     modelMode = args.mode
     emb_dim = args.ed
 
-    # isPairData = True if dataset in ["QQP"] else False
-    # isPairModel = True if modelName in ["bilstm"] else False
+    isPairData = True if dataset in ["QQP"] else False
+    isPairModel = True if modelName in ["bilstm"] else False
     # assert isPairData == isPairModel
 
     if dataset == "imdb":
@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     elif dataset == "QQP":
         x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen)
-        embedding_layer = get_pretrain_embeddings(max_words, emb_dim, maxlen, word_index)
+        embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
     print("Load model")
     runName = "%s_d%d_w%d_ml%d_%s_m%d_%s" % (
