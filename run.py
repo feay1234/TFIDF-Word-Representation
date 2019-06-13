@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger
 from keras.models import load_model
 from keras.preprocessing.sequence import pad_sequences
 
@@ -91,10 +92,10 @@ if __name__ == '__main__':
         disc_class_weights = class_weight.compute_class_weight('balanced', np.unique(disc_y), disc_y)
         print(disc_class_weights)
 
-    batch_size = 250
-    for epoch in range(epochs):
 
-        if "adv" in modelName:
+    if "adv" in modelName:
+        batch_size = 250
+        for epoch in range(epochs):
 
             t1 = time()
 
@@ -126,24 +127,14 @@ if __name__ == '__main__':
                 myfile.write(output + "\n")
 
             print(output)
-        else:
+    else:
 
-            # TODO apply early stop here on validation set
+        # Callbacks
+        es = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='min')
+        cp = ModelCheckpoint(path + 'h5/%s.h5' % runName, monitor='val_loss', verbose=1, save_best_only=True,
+                             save_weights_only=False,
+                             mode='min', period=1)
+        logger = CSVLogger(path + "out/%s.out" % runName)
 
-            t1 = time()
-            his = model.fit(x_train, y_train, batch_size=256, verbose=0, shuffle=True)
-            t2 = time()
-            res = model.test_on_batch(x_test, y_test)
-            t3 = time()
+        his = model.fit(x_train, y_train, batch_size=256, verbose=1, epochs=epochs, shuffle=True, validation_data=(x_test, y_test), callbacks=[es, cp, logger])
 
-            output = "Epoch %d, train[%.1f s], loss: %f, acc: %f, test[%.1f s]" % (
-                epoch, t2 - t1, his.history['loss'][0], res[1], t3 - t2)
-
-            with open(path + "out/%s.out" % runName, "a") as myfile:
-                myfile.write(output + "\n")
-
-            print(output)
-
-    total_time = (time() - start) / 3600
-    with open(path + "out/%s.out" % runName, "a") as myfile:
-        myfile.write("Total time: %.2f h" % total_time + "\n")
