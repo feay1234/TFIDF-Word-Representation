@@ -21,7 +21,7 @@ def get_lstm(dim, max_words, maxlen):
                   metrics=['accuracy'])
     return model
 
-def get_adv_lstm(dim, max_word, maxlen):
+def get_adv_lstm(dim, max_word, maxlen, mode):
 
     wordInput = Input(shape=(1,))
     disInput = Input(shape=(dim,))
@@ -44,9 +44,11 @@ def get_adv_lstm(dim, max_word, maxlen):
 
     discriminator = Model(disInput, dout)
 
+
+    disc_loss_mode = [0, -0.1, 0.1, 1]
     discriminator.compile(loss='binary_crossentropy',
                           optimizer='adam',
-                          metrics=['accuracy'], loss_weights=[-0.1])
+                          metrics=['accuracy'], loss_weights=[disc_loss_mode[mode]])
 
     lstm = LSTM(dim, dropout=0.2, recurrent_dropout=0.2)
 

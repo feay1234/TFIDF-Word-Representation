@@ -22,13 +22,13 @@ def parse_args():
     parser.add_argument('--data', type=str,
                         help='Dataset name', default="imdb")
 
-    parser.add_argument('--d', type=int, default=256,
+    parser.add_argument('--d', type=int, default=128,
                         help='Dimension')
 
-    parser.add_argument('--ml', type=int, default=500,
+    parser.add_argument('--ml', type=int, default=10,
                         help='Maximum lenght of sequence')
 
-    parser.add_argument('--mw', type=int, default=50000,
+    parser.add_argument('--mw', type=int, default=10000,
                         help='Maximum words')
 
     parser.add_argument('--epochs', type=int, default=100,
@@ -36,6 +36,9 @@ def parse_args():
 
     parser.add_argument('--dm', type=str, default="tf",
                         help='Discriminator mode: tf or idf')
+
+    parser.add_argument('--mode', type=int, default="2",
+                        help='Mode: ')
 
     return parser.parse_args()
 
@@ -53,18 +56,19 @@ if __name__ == '__main__':
     maxlen = args.ml
     epochs = args.epochs
     discMode = args.dm
+    modelMode = args.mode
 
     if dataset == "imdb":
         x_train, y_train, x_test, y_test = get_imbd(max_words, maxlen)
 
     print("Load model")
-    runName = "%s_d%d_w%d_ml%d_%s_%s" % (
-        modelName, dim, max_words, maxlen, discMode, datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
+    runName = "%s_d%d_w%d_ml%d_%s_m%d_%s" % (
+        modelName, dim, max_words, maxlen, discMode, modelMode, datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
 
     if modelName == "lstm":
         model = get_lstm(dim, max_words, maxlen)
     elif modelName == "adv_lstm":
-        advModel, model, encoder, discriminator = get_adv_lstm(dim, max_words, maxlen)
+        advModel, model, encoder, discriminator = get_adv_lstm(dim, max_words, maxlen, modelMode)
 
     class_weights = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
     if "adv" in modelName:
