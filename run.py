@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument('--dm', type=str, default="tf",
                         help='Discriminator mode: tf or idf')
 
-    parser.add_argument('--mode', type=int, default="2",
+    parser.add_argument('--mode', type=int, default="3",
                         help='Mode: ')
 
     return parser.parse_args()

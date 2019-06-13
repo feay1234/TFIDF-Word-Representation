@@ -45,7 +45,7 @@ def get_adv_lstm(dim, max_word, maxlen, mode):
     discriminator = Model(disInput, dout)
 
 
-    disc_loss_mode = [0, -0.1, 0.1, 1]
+    disc_loss_mode = [0, -0.1, 0.1, 1, -1]
     discriminator.compile(loss='binary_crossentropy',
                           optimizer='adam',
                           metrics=['accuracy'], loss_weights=[disc_loss_mode[mode]])
