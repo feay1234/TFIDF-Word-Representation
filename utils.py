@@ -11,7 +11,7 @@ def get_pretrain_embeddings(path, MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LEN
     print('Indexing word vectors.')
 
     embeddings_index = {}
-    with open(os.path.join(GLOVE_DIR, 'glove.840B.300d.txt')) as f:
+    with open(os.path.join(GLOVE_DIR, 'glove.840B.300d.txt'), encoding="utf-8") as f:
         for line in f:
             word, coefs = line.split(maxsplit=1)
             coefs = np.fromstring(coefs, 'f', sep=' ')
