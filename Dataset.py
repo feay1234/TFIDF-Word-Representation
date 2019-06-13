@@ -37,6 +37,9 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH):
         # there is no label on test set
         # df_test = pd.read_csv(path+"data/glue_data/QQP/test.tsv", sep="\t", error_bad_lines=False, nrows=1000)
 
+        df = df[~df.is_duplicate.isna()]
+        df_val = df_val[~df_val.is_duplicate.isna()]
+
         df.question1 = df.question1.astype(str)
         df.question2 = df.question2.astype(str)
 
