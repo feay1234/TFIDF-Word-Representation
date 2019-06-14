@@ -23,14 +23,14 @@ def parse_args():
                         help='Model Name: lstm', default="adv_bilstm")
 
     parser.add_argument('--data', type=str,
-                        help='Dataset name', default="TREC")
+                        help='Dataset name', default="MRPC")
 
-    parser.add_argument('--d', type=int, default=128,
+    parser.add_argument('--d', type=int, default=300,
                         help='Dimension')
     parser.add_argument('--ed', type=int, default=300,
                         help='Embedding Dimension')
 
-    parser.add_argument('--ml', type=int, default=10,
+    parser.add_argument('--ml', type=int, default=50,
                         help='Maximum lenght of sequence')
 
     parser.add_argument('--mw', type=int, default=10000,
@@ -45,7 +45,7 @@ def parse_args():
     parser.add_argument('--mode', type=int, default="3",
                         help='Mode:')
 
-    parser.add_argument('--bs', type=int, default=256,
+    parser.add_argument('--bs', type=int, default=12,
                         help='Batch Size:')
 
 
@@ -107,9 +107,9 @@ if __name__ == '__main__':
 
             t1 = time()
 
-            for i in range(math.ceil(x_train.shape[0] / batch_size)):
-                idx = np.random.randint(0, x_train.shape[0], batch_size)
-                _x_train = x_train[idx]
+            for i in range(math.ceil(y_train.shape[0] / batch_size)):
+                idx = np.random.randint(0, y_train.shape[0], batch_size)
+                _x_train = x_train[idx] if not isPairData else [x_train[0][idx], x_train[1][idx]]
                 _y_train = y_train[idx]
 
                 idx = np.random.randint(0, len(disc_x), batch_size)
@@ -121,7 +121,7 @@ if __name__ == '__main__':
 
                 # print(y_train.shape, _disc_y.shape)
 
-                loss = advModel.train_on_batch([_x_train, _disc_x], [_y_train, _disc_y],
+                loss = advModel.train_on_batch([_x_train, _disc_x] if not isPairData else _x_train +[_disc_x], [_y_train, _disc_y],
                                                class_weight=[[1] * _y_train.shape[-1], disc_class_weights])
 
                 adv_loss = discriminator.train_on_batch(_disc_x, _disc_y, class_weight=disc_class_weights)

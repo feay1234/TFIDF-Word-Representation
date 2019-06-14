@@ -67,8 +67,8 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         corpus = sen1_train + sen2_train + sen1_test + sen2_test
 
-        y_train = mrpc.mrpc_data['train']["y"]
-        y_test = mrpc.mrpc_data['test']["y"]
+        y_train = np.array(mrpc.mrpc_data['train']["y"])
+        y_test = np.array(mrpc.mrpc_data['test']["y"])
 
         class_num = 2
 
@@ -146,9 +146,9 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         corpus = sen1_train + sen2_train + sen1_val + sen2_val + sen1_test + sen2_test
 
-        y_train = sick.sick_data['train']["y"] if dataset != "SICK_E" else to_categorical(sick.sick_data['train']["y"])
-        y_val = sick.sick_data['dev']["y"] if dataset != "SICK_E" else to_categorical(sick.sick_data['dev']["y"])
-        y_test = sick.sick_data['test']["y"] if dataset != "SICK_E" else to_categorical(sick.sick_data['test']["y"])
+        y_train = np.array(sick.sick_data['train']["y"]) if dataset != "SICK_E" else to_categorical(sick.sick_data['train']["y"])
+        y_val = np.array(sick.sick_data['dev']["y"]) if dataset != "SICK_E" else to_categorical(sick.sick_data['dev']["y"])
+        y_test = np.array(sick.sick_data['test']["y"]) if dataset != "SICK_E" else to_categorical(sick.sick_data['test']["y"])
 
     elif dataset in ["SST2", "SST5"]:
         if dataset == "SST2":
@@ -159,11 +159,11 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         class_num = 2 if dataset == "SST2" else 1 # SST5 labels are 0 - 5 so regression task
 
         x_train = sst.sst_data["train"]["X"]
-        y_train = sst.sst_data["train"]["y"]
+        y_train = np.array(sst.sst_data["train"]["y"])
         x_val = sst.sst_data["dev"]["X"]
-        y_val = sst.sst_data["dev"]["y"]
+        y_val = np.array(sst.sst_data["dev"]["y"])
         x_test = sst.sst_data["test"]["X"]
-        y_test = sst.sst_data["test"]["y"]
+        y_test = np.array(sst.sst_data["test"]["y"])
 
         corpus = x_train + x_val + x_test
 
@@ -228,7 +228,7 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         x_train = pad_sequences(tokenizer.texts_to_sequences(x_train), maxlen=MAX_SEQUENCE_LENGTH)
         x_test = pad_sequences(tokenizer.texts_to_sequences(x_test), maxlen=MAX_SEQUENCE_LENGTH)
 
-    print(x_train.shape)
+    # print(x_train.shape)
 
     return x_train, y_train, x_test, y_test, word_index, class_num
 

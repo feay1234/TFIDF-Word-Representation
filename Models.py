@@ -85,7 +85,7 @@ def get_adv_bilstm_maxpool(dim, em_dim, max_words, maxlen, embedding_layer, clas
     pool = GlobalMaxPooling1D()
 
     # Generate Discriminator
-    disDense1 = Dense(int(em_dim * 1.5), activation="linear", use_bias=False, kernel_constraint=MinMaxNorm(-1,1))
+    disDense1 = Dense(int(em_dim * 1.5), activation="linear", use_bias=False, kernel_constraint=MinMaxNorm(-0.1,0.1))
     disDense2 = Dense(1, activation="sigmoid")
 
     dout = disDense2(disDense1(disInput))
@@ -95,7 +95,7 @@ def get_adv_bilstm_maxpool(dim, em_dim, max_words, maxlen, embedding_layer, clas
     # disc_loss_mode = [0, -0.1, 0.1, 1, -1]
     discriminator.compile(loss='binary_crossentropy',
                           optimizer='adam',
-                          metrics=['accuracy'], loss_weights=[0.1])
+                          metrics=['accuracy'], loss_weights=[1])
 
     discriminator.trainable = False
 

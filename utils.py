@@ -16,7 +16,7 @@ def get_pretrain_embeddings(path, MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LEN
             word, coefs = line.split(maxsplit=1)
             coefs = np.fromstring(coefs, 'f', sep=' ')
             embeddings_index[word] = coefs
-            # break
+            break
 
     print('Found %s word vectors.' % len(embeddings_index))
 
@@ -25,6 +25,7 @@ def get_pretrain_embeddings(path, MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LEN
     # prepare embedding matrix
     num_words = min(MAX_NUM_WORDS, len(word_index)) + 1
     embedding_matrix = np.zeros((num_words, EMBEDDING_DIM))
+    found = 0
     for word, i in word_index.items():
         if i > MAX_NUM_WORDS:
             continue
@@ -34,6 +35,9 @@ def get_pretrain_embeddings(path, MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LEN
             if embedding_vector.shape[0] == 0:
                 continue
             embedding_matrix[i] = embedding_vector
+            found += 1
+
+    print("Token num: %d, Found Tokens: %d" % (len(word_index), found))
 
     # load pre-trained word embeddings into an Embedding layer
     embedding_layer = Embedding(num_words,
