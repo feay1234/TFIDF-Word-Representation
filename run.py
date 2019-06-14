@@ -81,8 +81,8 @@ if __name__ == '__main__':
     embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
     print("Load model")
-    runName = "%s_d%d_w%d_ml%d_%s_m%d_%s" % (
-        modelName, dim, max_words, maxlen, discMode, modelMode, datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
+    runName = "%s_d%d_w%d_ml%d_%s_m%d_%s_%s" % (
+        modelName, dim, max_words, maxlen, discMode, modelMode, dataset, datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
 
     if modelName == "lstm":
         model = get_lstm(dim, max_words, maxlen, class_num)
