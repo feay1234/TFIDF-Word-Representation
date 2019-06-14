@@ -23,7 +23,7 @@ def parse_args():
                         help='Model Name: lstm', default="bilstm")
 
     parser.add_argument('--data', type=str,
-                        help='Dataset name', default="QQP")
+                        help='Dataset name', default="MRPC")
 
     parser.add_argument('--d', type=int, default=128,
                         help='Dimension')
@@ -64,15 +64,18 @@ if __name__ == '__main__':
     modelMode = args.mode
     emb_dim = args.ed
 
-    isPairData = True if dataset in ["QQP"] else False
+    isPairData = True if dataset in ["QQP", "MRPC"] else False
     isPairModel = True if modelName in ["bilstm"] else False
-    # assert isPairData == isPairModel
+    assert isPairData == isPairModel
 
     if dataset == "imdb":
         x_train, y_train, x_test, y_test = get_imbd(max_words, maxlen)
 
     elif dataset == "QQP":
-        x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen)
+        x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen, isPairData)
+        embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
+    elif dataset == "MRPC":
+        x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen, isPairData)
         embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
     print("Load model")

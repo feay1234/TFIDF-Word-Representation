@@ -5,6 +5,9 @@ from keras_preprocessing.sequence import pad_sequences
 from sklearn.feature_extraction.text import TfidfVectorizer
 from keras.preprocessing.text import Tokenizer
 import pandas as pd
+from senteval.trec import TRECEval
+from keras.utils.np_utils import to_categorical
+
 
 def get_imbd(max_words=10000, maxlen=500):
     print('Loading data...')
@@ -21,84 +24,98 @@ def get_imbd(max_words=10000, maxlen=500):
     return x_train, y_train, x_test, y_test
 
 
-
 # MAX_SEQUENCE_LENGTH = 1000
 # MAX_NUM_WORDS = 20000
 # EMBEDDING_DIM = 300
 
-def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH):
+def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
-    if dataset == "QQP":
 
-        # df = pd.read_csv(path+"data/glue_data/QQP/train.tsv", sep="\t", error_bad_lines=False, nrows=100)
-        # df_val = pd.read_csv(path+"data/glue_data/QQP/dev.tsv", sep="\t", error_bad_lines=False, nrows=100)
-        df = pd.read_csv(path+"data/glue_data/QQP/train.tsv", sep="\t", error_bad_lines=False)
-        df_val = pd.read_csv(path+"data/glue_data/QQP/dev.tsv", sep="\t", error_bad_lines=False)
-        # there is no label on test set
-        # df_test = pd.read_csv(path+"data/glue_data/QQP/test.tsv", sep="\t", error_bad_lines=False, nrows=1000)
+    if dataset == "MRPC":
 
-        df = df[~df.is_duplicate.isna()]
-        df_val = df_val[~df_val.is_duplicate.isna()]
+        df = pd.read_csv(path + "data/MRPC/msr_paraphrase_train.txt", sep="\t", error_bad_lines=False, skiprows=1,
+                         names=["label", "id1", "id2", "s1", "s2"])
+        df_test = pd.read_csv(path + "data/MRPC/msr_paraphrase_test.txt", sep="\t", error_bad_lines=False, skiprows=1,
+                              names=["label", "id1", "id2", "s1", "s2"])
 
-        df.question1 = df.question1.astype(str)
-        df.question2 = df.question2.astype(str)
+    elif dataset == "TREC":
+        trec = TRECEval("data/TREC/")
 
-        df_val.question1 = df_val.question1.astype(str)
-        df_val.question2 = df_val.question2.astype(str)
+        x_train = trec.train["X"]
+        y_train = to_categorical(trec.train["y"])
+        x_test = trec.test["X"]
+        y_test = to_categorical(trec.test["y"])
 
-        # df_test.question1 = df_test.question1.astype(str)
-        # df_test.question2 = df_test.question2.astype(str)
+        corpus = x_train + x_test
 
-        # corpus = df.question1.tolist() + df.question2.tolist() + df_val.question1.tolist() + df_val.question2.tolist() + df_test.question1.tolist() + df_test.question2.tolist()
-        corpus = df.question1.tolist() + df.question2.tolist() + df_val.question1.tolist() + df_val.question2.tolist()
+    elif dataset == "QQP":
 
-        # create the tokenizer
-        t = Tokenizer()
-        # fit the tokenizer on the documents
-        t.fit_on_texts(corpus)
+        df = pd.read_csv(path + "data/glue_data/QQP/train.tsv", sep="\t",
+                         names=["id", "qid1", "qid2", "s1", "s2", "label"], skiprows=1, error_bad_lines=False)
+        df_test = pd.read_csv(path + "data/glue_data/QQP/dev.tsv", sep="\t",
+                              names=["id", "qid1", "qid2", "s1", "s2", "label"], skiprows=1, error_bad_lines=False)
 
-        # finally, vectorize the text samples into a 2D integer tensor
-        tokenizer = Tokenizer(num_words=MAX_NUM_WORDS)
-        tokenizer.fit_on_texts(corpus)
+        df = df[~df.label.isna()]
+        df_test = df_test[~df_test.label.isna()]
 
-        x1_train = tokenizer.texts_to_sequences(df.question1.tolist())
-        x2_train = tokenizer.texts_to_sequences(df.question2.tolist())
+        df.s1 = df.s1.astype(str)
+        df.s2 = df.s2.astype(str)
 
-        x1_val = tokenizer.texts_to_sequences(df_val.question1.tolist())
-        x2_val = tokenizer.texts_to_sequences(df_val.question2.tolist())
+        df_test.s1 = df_test.s1.astype(str)
+        df_test.s2 = df_test.s2.astype(str)
 
-        # x1_test = tokenizer.texts_to_sequences(df_test.question1.tolist())
-        # x2_test = tokenizer.texts_to_sequences(df_test.question2.tolist())
+        y_train = df.label.values
+        y_test = df_test.label.values
+
+        sen1_train = df.s1.tolist()
+        sen2_train = df.s2.tolist()
+        sen1_test = df_test.s1.tolist()
+        sen2_test = df_test.s2.tolist()
+
+        corpus = sen1_train + sen2_train + sen1_test + sen2_test
+
+    # create the tokenizer
+    t = Tokenizer()
+    # fit the tokenizer on the documents
+    t.fit_on_texts(corpus)
+
+    # finally, vectorize the text samples into a 2D integer tensor
+    tokenizer = Tokenizer(num_words=MAX_NUM_WORDS)
+    tokenizer.fit_on_texts(corpus)
+
+    word_index = tokenizer.word_index
+    print('Found %s unique tokens.' % len(word_index))
+
+    if isPairData:
+
+        x1_train = tokenizer.texts_to_sequences(sen1_train)
+        x2_train = tokenizer.texts_to_sequences(sen2_train)
+
+        x1_test = tokenizer.texts_to_sequences(sen1_test)
+        x2_test = tokenizer.texts_to_sequences(sen2_test)
 
         x1_train = pad_sequences(x1_train, maxlen=MAX_SEQUENCE_LENGTH)
         x2_train = pad_sequences(x2_train, maxlen=MAX_SEQUENCE_LENGTH)
         x_train = [x1_train, x2_train]
 
-        x1_val = pad_sequences(x1_val, maxlen=MAX_SEQUENCE_LENGTH)
-        x2_val = pad_sequences(x2_val, maxlen=MAX_SEQUENCE_LENGTH)
-        x_val = [x1_val, x2_val]
+        x1_val = pad_sequences(x1_test, maxlen=MAX_SEQUENCE_LENGTH)
+        x2_val = pad_sequences(x2_test, maxlen=MAX_SEQUENCE_LENGTH)
+        x_test = [x1_val, x2_val]
 
-        # x1_test = pad_sequences(x1_test, maxlen=MAX_SEQUENCE_LENGTH)
-        # x2_test = pad_sequences(x2_test, maxlen=MAX_SEQUENCE_LENGTH)
-        # x_test = [x1_test, x2_test]
-
-        y_train = df.is_duplicate.values
-        y_val = df_val.is_duplicate.values
-        # print(df_test.columns)
-        # y_test = df_test.is_duplicate.values
-
-        word_index = tokenizer.word_index
-        print('Found %s unique tokens.' % len(word_index))
 
         # return x_train, x_test, x_val, y_val, x_test, y_test, word_index
-        return x_train, y_train, x_val, y_val, word_index
 
+    else:
+        x_train = tokenizer.texts_to_sequences(x_train)
+        x_test = tokenizer.texts_to_sequences(x_test)
+        
+    return x_train, y_train, x_test, y_test, word_index
 
 
 def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
-
     # extract sentence-pair data or sentence data
-    corpus = np.concatenate([x_train[0], x_train[1], x_test[0], x_test[1]]) if isPairData else np.concatenate([x_train, x_test])
+    corpus = np.concatenate([x_train[0], x_train[1], x_test[0], x_test[1]]) if isPairData else np.concatenate(
+        [x_train, x_test])
     if mode == "tf":
         term_frequency = {}
         for i in corpus:
@@ -130,11 +147,8 @@ def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
         wordIDF = {k: v for k, v in sorted(wordIDF.items(), key=lambda x: x[1])[::-1]}
         wordIDF = np.array(list(wordIDF.keys()))
 
-
         label = np.zeros(len(wordIDF))
         # set first 20% words as popular word
         label[:int(len(label) * 0.2)] = 1
 
         return wordIDF, label
-
-
