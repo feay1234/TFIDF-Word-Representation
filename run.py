@@ -23,7 +23,7 @@ def parse_args():
                         help='Model Name: lstm', default="adv_bilstm")
 
     parser.add_argument('--data', type=str,
-                        help='Dataset name', default="TREC")
+                        help='Dataset name', default="MPQA")
 
     parser.add_argument('--d', type=int, default=300,
                         help='Dimension')

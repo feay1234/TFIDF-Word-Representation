@@ -84,6 +84,10 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         x_train, x_test, y_train, y_test = train_test_split(corpus, labels, test_size=0.2, random_state=eval.seed)
         x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=eval.seed)
 
+        y_train = np.array(y_train)
+        y_val = np.array(y_val)
+        y_test = np.array(y_test)
+
         class_num = 2
 
     elif dataset == "TREC":
