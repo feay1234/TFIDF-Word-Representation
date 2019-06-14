@@ -2,6 +2,7 @@ from keras.datasets import imdb
 from keras.preprocessing import sequence
 import numpy as np
 from keras_preprocessing.sequence import pad_sequences
+from senteval.binary import CREval, SUBJEval, MREval, MPQAEval
 from senteval.mrpc import MRPCEval
 from senteval.sick import SICKRelatednessEval, SICKEntailmentEval
 from senteval.snli import SNLIEval
@@ -11,7 +12,7 @@ from senteval.trec import TRECEval
 from sklearn.feature_extraction.text import TfidfVectorizer
 from keras.preprocessing.text import Tokenizer
 import pandas as pd
-from keras.utils.np_utils import to_categorical
+from sklearn.model_selection import train_test_split
 
 
 def get_imbd(max_words=10000, maxlen=500):
@@ -33,6 +34,8 @@ def get_imbd(max_words=10000, maxlen=500):
 # MAX_NUM_WORDS = 20000
 # EMBEDDING_DIM = 300
 
+["MRPC", "TREC", "SNLI", "SICK_R", "SICK_E", "STS", "SST2", "SST5", "SUBJ", "MR", "CR", "MPQA"]
+
 def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
     if dataset == "MRPC":
@@ -53,6 +56,24 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         y_train = mrpc.sick_data['train']["y"]
         y_test = mrpc.sick_data['test']["y"]
+
+    if dataset in ["SUBJ", "MR", "CR", "MPQA"]:
+
+        if dataset == "CR":
+            eval = CREval(path+"data/CR/")
+        elif dataset == "MR":
+            eval = MREval(path+"data/MR/")
+        elif dataset == "SUBJ":
+            eval = SUBJEval(path+"data/SUBJ/")
+        elif dataset == "MPQA":
+            eval = MPQAEval(path+"data/MPQA/")
+
+        corpus = eval.samples
+        labels = eval.labels
+
+        x_train, x_test, y_train, y_test = train_test_split(corpus, labels, test_size=0.33, random_state=eval.seed)
+
+
 
     elif dataset == "TREC":
         trec = TRECEval(path+"data/TREC/")
