@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger
+from keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger, Callback
 from keras.models import load_model
 from keras.preprocessing.sequence import pad_sequences
 
@@ -36,13 +36,13 @@ def parse_args():
     parser.add_argument('--mw', type=int, default=10000,
                         help='Maximum words')
 
-    parser.add_argument('--epochs', type=int, default=100,
+    parser.add_argument('--epochs', type=int, default=10,
                         help='Epoch number')
 
     parser.add_argument('--dm', type=str, default="tf",
                         help='Discriminator mode: tf or idf')
 
-    parser.add_argument('--mode', type=int, default="3",
+    parser.add_argument('--mode', type=int, default="1",
                         help='Mode:')
 
     parser.add_argument('--bs', type=int, default=12,
@@ -77,9 +77,9 @@ if __name__ == '__main__':
                                                                                          maxlen, isPairData)
     embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
-    print("Load model")
     runName = "%s_d%d_w%d_ml%d_%s_m%d_%s_%s" % (
         modelName, dim, max_words, maxlen, discMode, modelMode, dataset, datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
+    print("Load model: %s" % runName)
 
     if modelName == "lstm":
         model = get_lstm(dim, max_words, maxlen, class_num)
@@ -114,7 +114,8 @@ if __name__ == '__main__':
                                                [_y_train, _disc_y],
                                                class_weight=[[1] * _y_train.shape[-1], disc_class_weights])
 
-                dis_loss = discriminator.train_on_batch(_disc_x, _disc_y, class_weight=disc_class_weights)
+                dis_loss = discriminator.train_on_batch(encoder.predict(disc_x).squeeze(), disc_y, class_weight=disc_class_weights)
+                # dis_loss = discriminator.train_on_batch(_disc_x, _disc_y, class_weight=disc_class_weights)
 
             t2 = time()
             res = model.test_on_batch(x_val, y_val)
@@ -128,30 +129,37 @@ if __name__ == '__main__':
                 myfile.write(output + "\n")
             print(output)
 
+
+            res = model.test_on_batch(x_test, y_test)
+            output = "Test acc: %f" % res[1]
+            with open(path + "out/%s.test.out" % runName, "a") as myfile:
+                myfile.write(output + "\n")
+            print(output)
+
             # if minLoss > val_loss:
             #     minLoss = val_loss
             # else:
             #     print("Early stopping")
             #     break
-
-            res = model.test_on_batch(x_test, y_test)
-            output = "Final acc: %f" % res[1]
-            with open(path + "out/%s.out" % runName, "a") as myfile:
-                myfile.write(output + "\n")
-            print(output)
     else:
         # Callbacks
-        es = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='min')
-        cp = ModelCheckpoint(path + 'h5/%s.h5' % runName, monitor='val_loss', verbose=2, save_best_only=True,
-                             save_weights_only=False,
-                             mode='min', period=1)
+        # es = EarlyStopping(monitor='val_loss', min_delta=0, patience=1, verbose=1, mode='min')
+        # cp = ModelCheckpoint(path + 'h5/%s.h5' % runName, monitor='val_loss', verbose=2, save_best_only=True,
+        #                      save_weights_only=False,
+        #                      mode='min', period=1)
         logger = CSVLogger(path + "out/%s.out" % runName)
 
-        his = model.fit(x_train, y_train, batch_size=batch_size, verbose=2, epochs=epochs, shuffle=True,
-                        validation_data=(x_val, y_val), callbacks=[es, cp, logger])
 
-        res = model.test_on_batch(x_test, y_test)
-        output = "Final acc: %f" % res[1]
-        with open(path + "out/%s.out" % runName, "a") as myfile:
-            myfile.write(output + "\n")
-        print(output)
+        class Eval(Callback):
+
+            def on_epoch_end(self, epoch, logs=None):
+                res = model.test_on_batch(x_test, y_test)
+                output = "Test acc: %f" % res[1]
+                with open(path + "out/%s.test.out" % runName, "a") as myfile:
+                    myfile.write(output + "\n")
+                print(output)
+
+
+        his = model.fit(x_train, y_train, batch_size=batch_size, verbose=2, epochs=epochs, shuffle=True,
+                        validation_data=(x_val, y_val), callbacks=[Eval(), logger])
+
