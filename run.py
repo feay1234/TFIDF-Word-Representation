@@ -10,7 +10,7 @@ from Dataset import *
 from Models import *
 from datetime import datetime
 from sklearn.utils import class_weight
-
+import math
 from utils import get_pretrain_embeddings
 
 
@@ -20,10 +20,10 @@ def parse_args():
     parser.add_argument('--path', type=str, help='Path to data', default="")
 
     parser.add_argument('--model', type=str,
-                        help='Model Name: lstm', default="bilstm")
+                        help='Model Name: lstm', default="adv_bilstm")
 
     parser.add_argument('--data', type=str,
-                        help='Dataset name', default="MRPC")
+                        help='Dataset name', default="TREC")
 
     parser.add_argument('--d', type=int, default=128,
                         help='Dimension')
@@ -44,6 +44,10 @@ def parse_args():
 
     parser.add_argument('--mode', type=int, default="3",
                         help='Mode:')
+
+    parser.add_argument('--bs', type=int, default=256,
+                        help='Batch Size:')
+
 
     return parser.parse_args()
 
@@ -66,8 +70,9 @@ if __name__ == '__main__':
     discMode = args.dm
     modelMode = args.mode
     emb_dim = args.ed
+    batch_size = args.bs
 
-    epochs = 1
+    # epochs = 1
 
 
     isPairData = True if dataset in ["QQP", "MRPC", "SICK_R", "SICK_E", "SNLI", "STS"] else False
@@ -83,25 +88,26 @@ if __name__ == '__main__':
         model = get_lstm(dim, max_words, maxlen, class_num)
     elif modelName == "bilstm":
         model = get_bilstm_maxpool(dim, max_words, maxlen, embedding_layer, class_num, isPairData)
-    elif modelName == "adv_lstm":
-        advModel, model, encoder, discriminator = get_adv_lstm(dim, max_words, maxlen, modelMode)
+    elif modelName == "adv_bilstm":
+        advModel, model, encoder, discriminator = get_adv_bilstm_maxpool(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData)
 
+    # TODO
+    # for main model weight balance
     # y_integers = np.argmax(y_train, axis=1)
     # class_weights = class_weight.compute_class_weight('balanced', np.unique(y_integers), y_integers)
 
     if "adv" in modelName:
         disc_x, disc_y = get_discriminator_train_data(x_train, x_test, discMode, isPairData)
         disc_class_weights = class_weight.compute_class_weight('balanced', np.unique(disc_y), disc_y)
-        print(disc_class_weights)
+        # print(disc_class_weights)
 
 
     if "adv" in modelName:
-        batch_size = 250
         for epoch in range(epochs):
 
             t1 = time()
 
-            for i in range(int(x_train.shape[0] / batch_size)):
+            for i in range(math.ceil(x_train.shape[0] / batch_size)):
                 idx = np.random.randint(0, x_train.shape[0], batch_size)
                 _x_train = x_train[idx]
                 _y_train = y_train[idx]
@@ -110,16 +116,19 @@ if __name__ == '__main__':
                 _disc_x = disc_x[idx]
                 _disc_y = disc_y[idx]
 
-                _disc_x = encoder.predict(_disc_x)
+                _disc_x = encoder.predict(_disc_x).squeeze()
+
+
+                # print(y_train.shape, _disc_y.shape)
 
                 loss = advModel.train_on_batch([_x_train, _disc_x], [_y_train, _disc_y],
-                                               class_weight=[class_weights, disc_class_weights])
+                                               class_weight=[[1] * _y_train.shape[-1], disc_class_weights])
 
                 adv_loss = discriminator.train_on_batch(_disc_x, _disc_y, class_weight=disc_class_weights)
 
             t2 = time()
             res = model.test_on_batch(x_test, y_test)
-            dis_res = discriminator.test_on_batch(encoder.predict(disc_x), disc_y)
+            dis_res = discriminator.test_on_batch(encoder.predict(disc_x).squeeze(), disc_y)
             # print(res[1], dis_res[1])
             t3 = time()
 
@@ -136,6 +145,7 @@ if __name__ == '__main__':
                              save_weights_only=False,
                              mode='min', period=1)
         logger = CSVLogger(path + "out/%s.out" % runName)
+
 
         his = model.fit(x_train, y_train, batch_size=256, verbose=1, epochs=epochs, shuffle=True, validation_data=(x_test, y_test), callbacks=[es, cp, logger])
 

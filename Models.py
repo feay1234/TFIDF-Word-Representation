@@ -3,8 +3,7 @@ from keras.layers import Dense, Embedding, Bidirectional, GlobalMaxPooling1D, La
 from keras.layers import LSTM, Input, Flatten, Subtract, Multiply, Concatenate
 import tensorflow as tf
 from keras import backend as K
-
-
+from keras.constraints import MinMaxNorm
 
 def get_lstm(dim, max_words, maxlen, class_num):
     seqInput = Input(shape=(maxlen,))
@@ -74,6 +73,82 @@ def get_bilstm_maxpool(dim, max_words, maxlen, embedding_layer, class_num, isPai
     return model
 
 
+def get_adv_bilstm_maxpool(dim, em_dim, max_words, maxlen, embedding_layer, class_num, isPairData):
+    uInput = Input(shape=(maxlen,))
+    vInput = Input(shape=(maxlen,))
+    disInput = Input(shape=(em_dim,))
+
+    encoder = Sequential()
+    encoder.add(embedding_layer)
+
+    bilstm = Bidirectional(LSTM(64, return_sequences=True))
+    pool = GlobalMaxPooling1D()
+
+    # Generate Discriminator
+    disDense1 = Dense(int(em_dim * 1.5), activation="linear", use_bias=False, kernel_constraint=MinMaxNorm(-1,1))
+    disDense2 = Dense(1, activation="sigmoid")
+
+    dout = disDense2(disDense1(disInput))
+
+    discriminator = Model(disInput, dout)
+
+    # disc_loss_mode = [0, -0.1, 0.1, 1, -1]
+    discriminator.compile(loss='binary_crossentropy',
+                          optimizer='adam',
+                          metrics=['accuracy'], loss_weights=[0.1])
+
+    discriminator.trainable = False
+
+    uEmb = pool(bilstm(encoder(uInput)))
+    if not isPairData:
+        merge = uEmb
+    else:
+
+        vEmb = pool(bilstm(encoder(vInput)))
+
+        def abs_diff(X):
+            return K.abs(X[0] - X[1])
+
+        abs = Lambda(abs_diff)
+
+        concat = Concatenate()([uEmb, vEmb])
+        sub = abs([uEmb, vEmb])
+        mul = Multiply()([uEmb, vEmb])
+
+        merge = Concatenate()([concat, sub, mul])
+
+    dense = Dense(dim, activation="relu")
+
+    if class_num == 1:
+        finalDense = Dense(1, activation="linear", name="finalDense")
+        loss = "mean_squared_error"
+        metric = "mse"
+    elif class_num == 2:
+        finalDense = Dense(1, activation="sigmoid", name="finalDense")
+        loss = "binary_crossentropy"
+        metric = "acc"
+    else:
+        finalDense = Dense(class_num, activation="softmax", name="finalDense")
+        loss = "categorical_crossentropy"
+        metric = "acc"
+
+    out = finalDense(dense(merge))
+    model = Model([uInput, vInput] if isPairData else [uInput], out)
+
+    model.compile(loss=loss,
+                  optimizer='adam',
+                  metrics=[metric])
+
+    advModel = Model([uInput, vInput, disInput] if isPairData else [uInput, disInput], [out, dout])
+
+    advModel.compile(loss=[loss, "binary_crossentropy"],
+                     optimizer='adam',
+                     loss_weights=[1, -0.1],
+                     metrics=[metric, "acc"])
+
+    return advModel, model, encoder, discriminator
+
+
 def get_adv_lstm(dim, max_word, maxlen, mode):
     wordInput = Input(shape=(1,))
     disInput = Input(shape=(dim,))
@@ -86,18 +161,6 @@ def get_adv_lstm(dim, max_word, maxlen, mode):
     encoder = Model(wordInput, wordEmb)
 
     seqEmb = emb(seqInput)
-
-    disDense1 = Dense(int(dim * 1.5), activation="relu")
-    disDense2 = Dense(1, activation="sigmoid")
-
-    dout = disDense2(disDense1(disInput))
-
-    discriminator = Model(disInput, dout)
-
-    disc_loss_mode = [0, -0.1, 0.1, 1, -1]
-    discriminator.compile(loss='binary_crossentropy',
-                          optimizer='adam',
-                          metrics=['accuracy'], loss_weights=[disc_loss_mode[mode]])
 
     lstm = LSTM(dim, dropout=0.2, recurrent_dropout=0.2)
 
