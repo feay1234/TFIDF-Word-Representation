@@ -53,11 +53,6 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
     if dataset == "MRPC":
 
-        # df = pd.read_csv(path + "data/MRPC/msr_paraphrase_train.txt", sep="\t", error_bad_lines=False, skiprows=1,
-        #                  names=["label", "id1", "id2", "s1", "s2"])
-        # df_test = pd.read_csv(path + "data/MRPC/msr_paraphrase_test.txt", sep="\t", error_bad_lines=False, skiprows=1,
-        #                       names=["label", "id1", "id2", "s1", "s2"])
-
         mrpc = MRPCEval(path+"data/MRPC/")
 
         sen1_train = mrpc.mrpc_data['train']['X_A']
@@ -86,7 +81,8 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         corpus = eval.samples
         labels = eval.labels
 
-        x_train, x_test, y_train, y_test = train_test_split(corpus, labels, test_size=0.33, random_state=eval.seed)
+        x_train, x_test, y_train, y_test = train_test_split(corpus, labels, test_size=0.2, random_state=eval.seed)
+        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=eval.seed)
 
         class_num = 2
 
@@ -100,6 +96,8 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         y_train = to_categorical(y_train)
         y_test = to_categorical(y_test)
 
+        x_train, x_val, y_train, y_val = train_test_split(x_train, y_train, test_size=0.2, random_state=trec.seed)
+
         corpus = x_train + x_test
         class_num = 6
 
@@ -112,15 +110,13 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         cat2idx = {"contradiction": 0, "entailment": 1, "neutral": 2}
         y_train = to_categorical([cat2idx[i] for i in snli.data['train'][2]])
 
-        # sen1_val = snli.data['valid'][0]
-        # sen2_val = snli.data['valid'][1]
-        # y_val = snli.data['valid'][2]
+        sen1_val = snli.data['valid'][0]
+        sen2_val = snli.data['valid'][1]
+        y_val = snli.data['valid'][2]
 
         sen1_test = snli.data['test'][0]
         sen2_test = snli.data['test'][1]
         y_test = to_categorical([cat2idx[i] for i in snli.data['test'][2]])
-
-
 
         class_num = 3
 
@@ -207,10 +203,17 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
     word_index = tokenizer.word_index
     print('Found %s unique tokens.' % len(word_index))
 
+    # Update max length
+    MAX_SEQUENCE_LENGTH = min(np.max([len(i) for i in corpus]), MAX_SEQUENCE_LENGTH)
+    print("Updated maxlen: %d" % MAX_SEQUENCE_LENGTH)
+
     if isPairData:
 
         x1_train = tokenizer.texts_to_sequences(sen1_train)
         x2_train = tokenizer.texts_to_sequences(sen2_train)
+
+        x1_val = tokenizer.texts_to_sequences(sen1_val)
+        x2_val = tokenizer.texts_to_sequences(sen2_val)
 
         x1_test = tokenizer.texts_to_sequences(sen1_test)
         x2_test = tokenizer.texts_to_sequences(sen2_test)
@@ -219,18 +222,22 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         x2_train = pad_sequences(x2_train, maxlen=MAX_SEQUENCE_LENGTH)
         x_train = [x1_train, x2_train]
 
-        x1_val = pad_sequences(x1_test, maxlen=MAX_SEQUENCE_LENGTH)
-        x2_val = pad_sequences(x2_test, maxlen=MAX_SEQUENCE_LENGTH)
-        x_test = [x1_val, x2_val]
+        x1_val = pad_sequences(x1_val, maxlen=MAX_SEQUENCE_LENGTH)
+        x2_val = pad_sequences(x2_val, maxlen=MAX_SEQUENCE_LENGTH)
+        x_val = [x1_val, x2_val]
+
+        x1_test = pad_sequences(x1_test, maxlen=MAX_SEQUENCE_LENGTH)
+        x2_test = pad_sequences(x2_test, maxlen=MAX_SEQUENCE_LENGTH)
+        x_test = [x1_test, x2_test]
 
     else:
-        # print("here")
         x_train = pad_sequences(tokenizer.texts_to_sequences(x_train), maxlen=MAX_SEQUENCE_LENGTH)
+        x_val = pad_sequences(tokenizer.texts_to_sequences(x_val), maxlen=MAX_SEQUENCE_LENGTH)
         x_test = pad_sequences(tokenizer.texts_to_sequences(x_test), maxlen=MAX_SEQUENCE_LENGTH)
 
     # print(x_train.shape)
 
-    return x_train, y_train, x_test, y_test, word_index, class_num
+    return x_train, y_train, x_val, y_val, x_test, y_test, word_index, class_num, MAX_SEQUENCE_LENGTH
 
 
 def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
