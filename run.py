@@ -68,15 +68,11 @@ if __name__ == '__main__':
     isPairModel = True if modelName in ["bilstm"] else False
     assert isPairData == isPairModel
 
-    if dataset == "imdb":
-        x_train, y_train, x_test, y_test = get_imbd(max_words, maxlen)
+    # if dataset == "imdb":
+    #     x_train, y_train, x_test, y_test = get_imbd(max_words, maxlen)
 
-    elif dataset == "QQP":
-        x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen, isPairData)
-        embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
-    elif dataset == "MRPC":
-        x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen, isPairData)
-        embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
+    x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen, isPairData)
+    embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
     print("Load model")
     runName = "%s_d%d_w%d_ml%d_%s_m%d_%s" % (
