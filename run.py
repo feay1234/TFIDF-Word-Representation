@@ -114,8 +114,10 @@ if __name__ == '__main__':
                                                [_y_train, _disc_y],
                                                class_weight=[[1] * _y_train.shape[-1], disc_class_weights])
 
-                dis_loss = discriminator.train_on_batch(encoder.predict(disc_x).squeeze(), disc_y, class_weight=disc_class_weights)
-                # dis_loss = discriminator.train_on_batch(_disc_x, _disc_y, class_weight=disc_class_weights)
+                if modelMode == 1:
+                    dis_loss = discriminator.train_on_batch(encoder.predict(disc_x).squeeze(), disc_y, class_weight=disc_class_weights)
+                elif modelMode == 2:
+                    dis_loss = discriminator.train_on_batch(_disc_x, _disc_y, class_weight=disc_class_weights)
 
             t2 = time()
             res = model.test_on_batch(x_val, y_val)
