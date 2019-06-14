@@ -48,8 +48,11 @@ def parse_args():
     return parser.parse_args()
 
 
+
+
 if __name__ == '__main__':
     start = time()
+
 
     args = parse_args()
 
@@ -64,14 +67,12 @@ if __name__ == '__main__':
     modelMode = args.mode
     emb_dim = args.ed
 
-    isPairData = True if dataset in ["QQP", "MRPC"] else False
-    isPairModel = True if modelName in ["bilstm"] else False
-    assert isPairData == isPairModel
+    epochs = 1
 
-    # if dataset == "imdb":
-    #     x_train, y_train, x_test, y_test = get_imbd(max_words, maxlen)
 
-    x_train, y_train, x_test, y_test, word_index = get_datasets(path, dataset, max_words, maxlen, isPairData)
+    isPairData = True if dataset in ["QQP", "MRPC", "SICK_R", "SICK_E", "SNLI", "STS"] else False
+
+    x_train, y_train, x_test, y_test, word_index, class_num = get_datasets(path, dataset, max_words, maxlen, isPairData)
     embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
     print("Load model")
@@ -79,13 +80,15 @@ if __name__ == '__main__':
         modelName, dim, max_words, maxlen, discMode, modelMode, datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
 
     if modelName == "lstm":
-        model = get_lstm(dim, max_words, maxlen)
+        model = get_lstm(dim, max_words, maxlen, class_num)
     elif modelName == "bilstm":
-        model = get_pair_bilstm_maxpool(dim, max_words, maxlen, embedding_layer)
+        model = get_bilstm_maxpool(dim, max_words, maxlen, embedding_layer, class_num, isPairData)
     elif modelName == "adv_lstm":
         advModel, model, encoder, discriminator = get_adv_lstm(dim, max_words, maxlen, modelMode)
 
-    class_weights = class_weight.compute_class_weight('balanced', np.unique(y_train), y_train)
+    # y_integers = np.argmax(y_train, axis=1)
+    # class_weights = class_weight.compute_class_weight('balanced', np.unique(y_integers), y_integers)
+
     if "adv" in modelName:
         disc_x, disc_y = get_discriminator_train_data(x_train, x_test, discMode, isPairData)
         disc_class_weights = class_weight.compute_class_weight('balanced', np.unique(disc_y), disc_y)
@@ -127,7 +130,6 @@ if __name__ == '__main__':
 
             print(output)
     else:
-
         # Callbacks
         es = EarlyStopping(monitor='val_loss', min_delta=0, patience=2, verbose=1, mode='min')
         cp = ModelCheckpoint(path + 'h5/%s.h5' % runName, monitor='val_loss', verbose=1, save_best_only=True,

@@ -13,6 +13,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from keras.preprocessing.text import Tokenizer
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from keras.utils.np_utils import to_categorical
+
 
 
 def get_imbd(max_words=10000, maxlen=500):
@@ -34,9 +36,20 @@ def get_imbd(max_words=10000, maxlen=500):
 # MAX_NUM_WORDS = 20000
 # EMBEDDING_DIM = 300
 
-["MRPC", "TREC", "SNLI", "SICK_R", "SICK_E", "STS", "SST2", "SST5", "SUBJ", "MR", "CR", "MPQA"]
+# ["MRPC", "TREC", "SNLI", "SICK_R", "SICK_E", "STS", "SST2", "SST5", "SUBJ", "MR", "CR", "MPQA"]
 
 def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
+
+    if dataset == "TREC":
+        class_num = 6
+    elif dataset in ["SICK_E", "SNLI"]:
+        class_num = 3
+    elif dataset == "SST5":
+        class_num = 5
+    elif dataset in ["SICK_R", "STS"]:
+        class_num = 1
+    else:
+        class_num = 2
 
     if dataset == "MRPC":
 
@@ -47,15 +60,17 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         mrpc = MRPCEval(path+"data/MRPC/")
 
-        sen1_train = mrpc.sick_data['train']['X_A']
-        sen2_train = mrpc.sick_data['train']['X_B']
-        sen1_test = mrpc.sick_data['test']['X_A']
-        sen2_test = mrpc.sick_data['test']['X_B']
+        sen1_train = mrpc.mrpc_data['train']['X_A']
+        sen2_train = mrpc.mrpc_data['train']['X_B']
+        sen1_test = mrpc.mrpc_data['test']['X_A']
+        sen2_test = mrpc.mrpc_data['test']['X_B']
 
         corpus = sen1_train + sen2_train + sen1_test + sen2_test
 
-        y_train = mrpc.sick_data['train']["y"]
-        y_test = mrpc.sick_data['test']["y"]
+        y_train = mrpc.mrpc_data['train']["y"]
+        y_test = mrpc.mrpc_data['test']["y"]
+
+        class_num = 2
 
     if dataset in ["SUBJ", "MR", "CR", "MPQA"]:
 
@@ -73,7 +88,7 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         x_train, x_test, y_train, y_test = train_test_split(corpus, labels, test_size=0.33, random_state=eval.seed)
 
-
+        class_num = 2
 
     elif dataset == "TREC":
         trec = TRECEval(path+"data/TREC/")
@@ -82,8 +97,11 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         y_train = trec.train["y"]
         x_test = trec.test["X"]
         y_test = trec.test["y"]
+        y_train = to_categorical(y_train)
+        y_test = to_categorical(y_test)
 
         corpus = x_train + x_test
+        class_num = 6
 
     elif dataset == "SNLI":
         snli = SNLIEval(path+"data/SNLI/")
@@ -91,7 +109,8 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         sen1_train = snli.data['train'][0]
         sen2_train = snli.data['train'][1]
-        y_train = snli.data['train'][2]
+        cat2idx = {"contradiction": 0, "entailment": 1, "neutral": 2}
+        y_train = to_categorical([cat2idx[i] for i in snli.data['train'][2]])
 
         # sen1_val = snli.data['valid'][0]
         # sen2_val = snli.data['valid'][1]
@@ -99,15 +118,22 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         sen1_test = snli.data['test'][0]
         sen2_test = snli.data['test'][1]
-        y_test = snli.data['test'][2]
+        y_test = to_categorical([cat2idx[i] for i in snli.data['test'][2]])
+
+
+
+        class_num = 3
 
     elif dataset in ["SICK_R", "SICK_E", "STS"]:
         if dataset == "SICK_R":
             sick = SICKRelatednessEval(path+"data/SICK/")
+            class_num = 1
         elif dataset == "SICK_E":
-            sick = STSBenchmarkEval(path + "data/STS/STSBenchmark/")
-        elif dataset == "STS":
             sick = SICKEntailmentEval(path+"data/SICK/")
+            class_num = 3
+        elif dataset == "STS":
+            sick = STSBenchmarkEval(path + "data/STS/STSBenchmark/")
+            class_num = 1
 
         sen1_train = sick.sick_data['train']['X_A']
         sen2_train = sick.sick_data['train']['X_B']
@@ -120,19 +146,24 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         corpus = sen1_train + sen2_train + sen1_val + sen2_val + sen1_test + sen2_test
 
-        y_train = sick.sick_data['train']["y"]
-        y_val = sick.sick_data['dev']["y"]
-        y_test = sick.sick_data['test']["y"]
+        y_train = sick.sick_data['train']["y"] if dataset != "SICK_E" else to_categorical(sick.sick_data['train']["y"])
+        y_val = sick.sick_data['dev']["y"] if dataset != "SICK_E" else to_categorical(sick.sick_data['dev']["y"])
+        y_test = sick.sick_data['test']["y"] if dataset != "SICK_E" else to_categorical(sick.sick_data['test']["y"])
 
     elif dataset in ["SST2", "SST5"]:
-        sst = SSTEval(path+"data/SST", nclasses=2 if dataset == "SST2" else 5)
+        if dataset == "SST2":
+            sst = SSTEval(path+"data/SST/binary", nclasses=2)
+        else:
+            sst = SSTEval(path+"data/SST/fine/", nclasses= 5)
 
-        x_train = sst["train"]["X"]
-        y_train = sst["train"]["y"]
-        x_val = sst["dev"]["X"]
-        y_val = sst["dev"]["y"]
-        x_test = sst["test"]["X"]
-        y_test = sst["test"]["y"]
+        class_num = 2 if dataset == "SST2" else 1 # SST5 labels are 0 - 5 so regression task
+
+        x_train = sst.sst_data["train"]["X"]
+        y_train = sst.sst_data["train"]["y"]
+        x_val = sst.sst_data["dev"]["X"]
+        y_val = sst.sst_data["dev"]["y"]
+        x_test = sst.sst_data["test"]["X"]
+        y_test = sst.sst_data["test"]["y"]
 
         corpus = x_train + x_val + x_test
 
@@ -162,6 +193,7 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         sen2_test = df_test.s2.tolist()
 
         corpus = sen1_train + sen2_train + sen1_test + sen2_test
+        class_num = 2
 
     # create the tokenizer
     t = Tokenizer()
@@ -192,10 +224,13 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         x_test = [x1_val, x2_val]
 
     else:
-        x_train = tokenizer.texts_to_sequences(x_train)
-        x_test = tokenizer.texts_to_sequences(x_test)
+        # print("here")
+        x_train = pad_sequences(tokenizer.texts_to_sequences(x_train), maxlen=MAX_SEQUENCE_LENGTH)
+        x_test = pad_sequences(tokenizer.texts_to_sequences(x_test), maxlen=MAX_SEQUENCE_LENGTH)
 
-    return x_train, y_train, x_test, y_test, word_index
+    print(x_train.shape)
+
+    return x_train, y_train, x_test, y_test, word_index, class_num
 
 
 def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):

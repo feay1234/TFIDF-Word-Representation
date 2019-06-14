@@ -5,7 +5,8 @@ import tensorflow as tf
 from keras import backend as K
 
 
-def get_lstm(dim, max_words, maxlen):
+
+def get_lstm(dim, max_words, maxlen, class_num):
     seqInput = Input(shape=(maxlen,))
     emb = Embedding(max_words, dim)
     seqEmb = emb(seqInput)
@@ -21,9 +22,7 @@ def get_lstm(dim, max_words, maxlen):
 
 
 # InferSent, Facebook https://arxiv.org/pdf/1705.02364.pdf
-
-
-def get_pair_bilstm_maxpool(dim, max_words, maxlen, embedding_layer):
+def get_bilstm_maxpool(dim, max_words, maxlen, embedding_layer, class_num, isPairData):
     uInput = Input(shape=(maxlen,))
     vInput = Input(shape=(maxlen,))
 
@@ -33,29 +32,44 @@ def get_pair_bilstm_maxpool(dim, max_words, maxlen, embedding_layer):
     encoder.add(GlobalMaxPooling1D())
 
     uEmb = encoder(uInput)
-    vEmb = encoder(vInput)
+    if not isPairData:
+        merge = uEmb
+    else:
 
-    def abs_diff(X):
-        return K.abs(X[0] - X[1])
+        vEmb = encoder(vInput)
 
-    abs = Lambda(abs_diff)
+        def abs_diff(X):
+            return K.abs(X[0] - X[1])
 
-    concat = Concatenate()([uEmb, vEmb])
-    sub = abs([uEmb, vEmb])
-    mul = Multiply()([uEmb, vEmb])
+        abs = Lambda(abs_diff)
 
-    merge = Concatenate()([concat, sub, mul])
+        concat = Concatenate()([uEmb, vEmb])
+        sub = abs([uEmb, vEmb])
+        mul = Multiply()([uEmb, vEmb])
+
+        merge = Concatenate()([concat, sub, mul])
 
     dense = Dense(dim, activation="relu")
-    finalDense = Dense(1, activation="sigmoid")
+
+    if class_num == 1:
+        finalDense = Dense(1, activation="linear")
+        loss = "mean_squared_error"
+        metric = "mse"
+    elif class_num == 2:
+        finalDense = Dense(1, activation="sigmoid")
+        loss = "binary_crossentropy"
+        metric = "acc"
+    else:
+        finalDense = Dense(class_num, activation="softmax")
+        loss = "categorical_crossentropy"
+        metric = "acc"
 
     out = finalDense(dense(merge))
-    model = Model([uInput, vInput], out)
+    model = Model([uInput, vInput] if isPairData else [uInput], out)
 
-
-    model.compile(loss='binary_crossentropy',
+    model.compile(loss=loss,
                   optimizer='adam',
-                  metrics=['accuracy'])
+                  metrics=[metric])
 
     return model
 
