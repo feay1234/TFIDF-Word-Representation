@@ -199,7 +199,7 @@ if __name__ == '__main__':
                 output = "%d [D loss: %f, acc: %.2f%%] [G loss: %f, acc: %f]" % (
                 epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1])
 
-                with open(path + "out/%s.res" % runName, "a") as myfile:
+                with open(path + "out/%s.out" % runName, "a") as myfile:
                     myfile.write(output + "\n")
                 print(output)
 
@@ -222,7 +222,7 @@ if __name__ == '__main__':
         # cp = ModelCheckpoint(path + 'h5/%s.h5' % runName, monitor='val_loss', verbose=2, save_best_only=True,
         #                      save_weights_only=False,
         #                      mode='min', period=1)
-        logger = CSVLogger(path + "out/%s.res" % runName)
+        logger = CSVLogger(path + "out/%s.out" % runName)
 
 
         class Eval(Callback):
