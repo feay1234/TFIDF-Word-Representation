@@ -81,8 +81,8 @@ if __name__ == '__main__':
                                                                                                  maxlen, isPairData)
     embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
-    runName = "%s_%s_d%d_w%d_ml%d_%s_m%d_%s" % (dataset,
-                                                modelName, dim, max_words, maxlen, discMode, modelMode,
+    runName = "%s_%s_d%d_w%d_ml%d_%s_m%d_w%.3f%s" % (dataset,
+                                                modelName, dim, max_words, maxlen, discMode, modelMode, weight,
                                                 datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
     print("Load model: %s" % runName)
 
