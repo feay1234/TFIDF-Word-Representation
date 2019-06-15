@@ -1,6 +1,7 @@
 from keras.models import Sequential, Model
 from keras.layers import Dense, Embedding, Bidirectional, GlobalMaxPooling1D, Lambda
 from keras.layers import LSTM, Input, Flatten, Subtract, Multiply, Concatenate
+from keras.initializers import RandomUniform
 import tensorflow as tf
 from keras import backend as K
 from keras.constraints import MinMaxNorm
@@ -27,7 +28,7 @@ def get_bilstm_maxpool(dim, max_words, maxlen, embedding_layer, class_num, isPai
 
     encoder = Sequential()
     encoder.add(embedding_layer)
-    encoder.add(Bidirectional(LSTM(64, return_sequences=True)))
+    encoder.add(Bidirectional(LSTM(dim, return_sequences=True)))
     encoder.add(GlobalMaxPooling1D())
 
     uEmb = encoder(uInput)
@@ -81,11 +82,11 @@ def get_adv_bilstm_maxpool(dim, em_dim, max_words, maxlen, embedding_layer, clas
     encoder = Sequential()
     encoder.add(embedding_layer)
 
-    bilstm = Bidirectional(LSTM(64, return_sequences=True))
+    bilstm = Bidirectional(LSTM(dim, return_sequences=True))
     pool = GlobalMaxPooling1D()
 
     # Generate Discriminator
-    disDense1 = Dense(int(em_dim * 1.5), activation="linear", use_bias=False, kernel_constraint=MinMaxNorm(-0.1,0.1))
+    disDense1 = Dense(dim, activation="linear", use_bias=False, kernel_initializer=RandomUniform(-0.1,0.1))
     disDense2 = Dense(1, activation="sigmoid")
 
     dout = disDense2(disDense1(disInput))
@@ -144,6 +145,85 @@ def get_adv_bilstm_maxpool(dim, em_dim, max_words, maxlen, embedding_layer, clas
     advModel.compile(loss=[loss, "binary_crossentropy"],
                      optimizer='adam',
                      loss_weights=[1, -0.1],
+                     metrics=[metric, "acc"])
+
+    return advModel, model, encoder, discriminator
+
+# Keras version
+# https://github.com/eriklindernoren/Keras-GAN/blob/master/aae/aae.py
+def get_adv_bilstm_maxpool_keras(dim, em_dim, max_words, maxlen, embedding_layer, class_num, isPairData):
+    uInput = Input(shape=(maxlen,))
+    vInput = Input(shape=(maxlen,))
+    disInput = Input(shape=(em_dim,))
+    wordInput = Input(shape=(1,))
+
+    encoder = Sequential()
+    encoder.add(embedding_layer)
+
+    bilstm = Bidirectional(LSTM(dim, return_sequences=True))
+    pool = GlobalMaxPooling1D()
+
+    # Generate Discriminator
+    disDense1 = Dense(dim, activation="linear", use_bias=False, kernel_initializer=RandomUniform(-0.1,0.1))
+    disDense2 = Dense(1, activation="sigmoid")
+
+    dout = disDense2(disDense1(disInput))
+
+    discriminator = Model(disInput, dout)
+
+    # disc_loss_mode = [0, -0.1, 0.1, 1, -1]
+    discriminator.compile(loss='binary_crossentropy',
+                          optimizer='adam',
+                          metrics=['accuracy'], loss_weights=[1])
+
+    discriminator.trainable = False
+
+    uEmb = pool(bilstm(encoder(uInput)))
+    if not isPairData:
+        merge = uEmb
+    else:
+
+        vEmb = pool(bilstm(encoder(vInput)))
+
+        def abs_diff(X):
+            return K.abs(X[0] - X[1])
+
+        abs = Lambda(abs_diff)
+
+        concat = Concatenate()([uEmb, vEmb])
+        sub = abs([uEmb, vEmb])
+        mul = Multiply()([uEmb, vEmb])
+
+        merge = Concatenate()([concat, sub, mul])
+
+    dense = Dense(dim, activation="relu")
+
+    if class_num == 1:
+        finalDense = Dense(1, activation="linear", name="finalDense")
+        loss = "mean_squared_error"
+        metric = "mse"
+    elif class_num == 2:
+        finalDense = Dense(1, activation="sigmoid", name="finalDense")
+        loss = "binary_crossentropy"
+        metric = "acc"
+    else:
+        finalDense = Dense(class_num, activation="softmax", name="finalDense")
+        loss = "categorical_crossentropy"
+        metric = "acc"
+
+    validity = discriminator(Flatten()(encoder(wordInput)))
+    out = finalDense(dense(merge))
+    model = Model([uInput, vInput] if isPairData else [uInput], out)
+
+    model.compile(loss=loss,
+                  optimizer='adam',
+                  metrics=[metric])
+
+    advModel = Model([uInput, vInput, wordInput] if isPairData else [uInput, wordInput], [out, validity])
+
+    advModel.compile(loss=[loss, "binary_crossentropy"],
+                     optimizer='adam',
+                     loss_weights=[0.999, 0.001],
                      metrics=[metric, "acc"])
 
     return advModel, model, encoder, discriminator

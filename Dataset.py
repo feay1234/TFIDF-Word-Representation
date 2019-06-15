@@ -261,8 +261,6 @@ def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
         term_frequency = np.array(list(term_frequency.keys()))
 
         label = np.zeros(len(term_frequency))
-        # set first 20% words as popular word
-        label[:int(len(label) * 0.2)] = 1
 
         return term_frequency, label
 
