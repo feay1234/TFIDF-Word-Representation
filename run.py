@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument('--path', type=str, help='Path to data', default="")
 
     parser.add_argument('--model', type=str,
-                        help='Model Name: lstm', default="adv_bilstm2")
+                        help='Model Name: lstm', default="bilstm")
 
     parser.add_argument('--data', type=str,
                         help='Dataset name', default="TREC")
@@ -104,6 +104,9 @@ if __name__ == '__main__':
                                                           pop_percent,
                                                           datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
     print("Load model: %s" % runName)
+
+    with open(path + "out/%s.res" % runName, "a") as myfile:
+        myfile.write(runName + "\n")
 
     if "adv" in modelName:
         disc_x, disc_y = get_discriminator_train_data(x_train, x_test, discMode, isPairData)
