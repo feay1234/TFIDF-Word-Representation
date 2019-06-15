@@ -52,6 +52,7 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         class_num = 2
 
     if dataset == "MRPC":
+        # Pair datasets, it does not provide val set
 
         mrpc = MRPCEval(path+"data/MRPC/")
 
@@ -59,6 +60,7 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         sen2_train = mrpc.mrpc_data['train']['X_B']
         sen1_test = mrpc.mrpc_data['test']['X_A']
         sen2_test = mrpc.mrpc_data['test']['X_B']
+
 
         corpus = sen1_train + sen2_train + sen1_test + sen2_test
 

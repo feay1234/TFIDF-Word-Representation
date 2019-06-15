@@ -151,7 +151,7 @@ def get_adv_bilstm_maxpool(dim, em_dim, max_words, maxlen, embedding_layer, clas
 
 # Keras version
 # https://github.com/eriklindernoren/Keras-GAN/blob/master/aae/aae.py
-def get_adv_bilstm_maxpool_keras(dim, em_dim, max_words, maxlen, embedding_layer, class_num, isPairData):
+def get_adv_bilstm_maxpool_keras(dim, em_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight=0.1):
     uInput = Input(shape=(maxlen,))
     vInput = Input(shape=(maxlen,))
     disInput = Input(shape=(em_dim,))
@@ -223,7 +223,7 @@ def get_adv_bilstm_maxpool_keras(dim, em_dim, max_words, maxlen, embedding_layer
 
     advModel.compile(loss=[loss, "binary_crossentropy"],
                      optimizer='adam',
-                     loss_weights=[0.999, 0.001],
+                     loss_weights=[1, weight],
                      metrics=[metric, "acc"])
 
     return advModel, model, encoder, discriminator

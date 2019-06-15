@@ -36,7 +36,7 @@ def parse_args():
     parser.add_argument('--mw', type=int, default=10000,
                         help='Maximum words')
 
-    parser.add_argument('--epochs', type=int, default=10,
+    parser.add_argument('--epochs', type=int, default=5,
                         help='Epoch number')
 
     parser.add_argument('--dm', type=str, default="tf",
@@ -47,6 +47,8 @@ def parse_args():
 
     parser.add_argument('--bs', type=int, default=32,
                         help='Batch Size:')
+    parser.add_argument('--w', type=float, default=0.1,
+                        help='Weight:')
 
     return parser.parse_args()
 
@@ -67,6 +69,7 @@ if __name__ == '__main__':
     modelMode = args.mode
     emb_dim = args.ed
     batch_size = args.bs
+    weight = args.w
 
     # epochs = 1
 
@@ -92,7 +95,7 @@ if __name__ == '__main__':
                                                                          embedding_layer, class_num, isPairData)
     elif modelName == "adv_bilstm2":
         advModel, model, encoder, discriminator = get_adv_bilstm_maxpool_keras(dim, emb_dim, max_words, maxlen,
-                                                                         embedding_layer, class_num, isPairData)
+                                                                         embedding_layer, class_num, isPairData, weight)
 
     if "adv" in modelName:
         disc_x, disc_y = get_discriminator_train_data(x_train, x_test, discMode, isPairData)
@@ -193,12 +196,19 @@ if __name__ == '__main__':
                     g_loss = advModel.train_on_batch([_x_train, _popular_rare_x] if not isPairData else _x_train + [_popular_rare_x],
                                                    [_y_train, _popular_rare_y])
 
-                    print("%d [D loss: %f, acc: %.2f%%] [G loss: %f, mse: %f]" % (
-                    epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1]))
+                output = "%d [D loss: %f, acc: %.2f%%] [G loss: %f, acc: %f]" % (
+                epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1])
 
-                    res = model.test_on_batch(x_test, y_test)
-                    output = "Test acc: %f" % res[1]
-                    print(output)
+                with open(path + "out/%s.res" % runName, "a") as myfile:
+                    myfile.write(output + "\n")
+                print(output)
+
+                val_res = model.test_on_batch(x_val, y_val)
+                test_res = model.test_on_batch(x_test, y_test)
+                output = "Val acc: %f, Test acc: $f" % (val_res[1], test_res[1])
+                with open(path + "out/%s.res" % runName, "a") as myfile:
+                    myfile.write(output + "\n")
+                print(output)
 
 
                     # if minLoss > val_loss:
@@ -212,15 +222,19 @@ if __name__ == '__main__':
         # cp = ModelCheckpoint(path + 'h5/%s.h5' % runName, monitor='val_loss', verbose=2, save_best_only=True,
         #                      save_weights_only=False,
         #                      mode='min', period=1)
-        logger = CSVLogger(path + "out/%s.out" % runName)
+        logger = CSVLogger(path + "out/%s.res" % runName)
 
 
         class Eval(Callback):
 
             def on_epoch_end(self, epoch, logs=None):
-                res = model.test_on_batch(x_test, y_test)
-                output = "Test acc: %f" % res[1]
-                with open(path + "out/%s.test" % runName, "a") as myfile:
+            # def on_batch_end(self, batch, logs=None):
+
+            # def on_epoch_end(self, epoch, logs=None):
+                val_res = model.test_on_batch(x_val, y_val)
+                test_res = model.test_on_batch(x_test, y_test)
+                output = "Val acc: %f, Test acc: $f" % (val_res[1], test_res[1])
+                with open(path + "out/%s.res" % runName, "a") as myfile:
                     myfile.write(output + "\n")
                 print(output)
 
