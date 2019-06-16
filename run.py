@@ -124,7 +124,8 @@ if __name__ == '__main__':
             rare_y = np.zeros(batch_size)
 
     if "adv" in modelName:
-        minLoss = 9999999
+        minMSE = 9999999
+        maxACC = -999999
         for epoch in range(epochs):
 
             t1 = time()
@@ -223,11 +224,19 @@ if __name__ == '__main__':
                 print(output)
 
 
-                # if minLoss > val_loss:
-                #     minLoss = val_loss
-                # else:
-                #     print("Early stopping")
-                #     break
+                # Early stopping strategy: MSE and ACC
+                if class_num == 1:
+                    if minMSE > val_res[1]:
+                        minMSE = val_res[1]
+                    else:
+                        print("Early stopping")
+                        break
+                else:
+                    if maxACC < val_res[1]:
+                        maxACC = val_res[1]
+                    else:
+                        print("Early stopping")
+                        break
     else:
         # Callbacks
         # es = EarlyStopping(monitor='val_loss', min_delta=0, patience=1, verbose=1, mode='min')
