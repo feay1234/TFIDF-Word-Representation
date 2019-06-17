@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument('--path', type=str, help='Path to data', default="")
 
     parser.add_argument('--model', type=str,
-                        help='Model Name: lstm', default="bilstm")
+                        help='Model Name: lstm', default="adv_bilstm2")
 
     parser.add_argument('--data', type=str,
                         help='Dataset name', default="TREC")
@@ -39,7 +39,7 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=5,
                         help='Epoch number')
 
-    parser.add_argument('--dm', type=str, default="tf",
+    parser.add_argument('--dm', type=str, default="idf",
                         help='Discriminator mode: tf or idf')
 
     parser.add_argument('--mode', type=int, default="1",
@@ -99,9 +99,9 @@ if __name__ == '__main__':
         advModel, model, encoder, discriminator = get_adv_bilstm_maxpool_keras(dim, emb_dim, max_words, maxlen,
                                                                                embedding_layer, class_num, isPairData,
                                                                                weight)
-        runName = "%s_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s" % (dataset,
+        runName = "%s_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s_%s" % (dataset,
                                                           modelName, dim, max_words, maxlen, weight,
-                                                          pop_percent,
+                                                          pop_percent, discMode,
                                                           datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
     print("Load model: %s" % runName)
 
