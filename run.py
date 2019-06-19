@@ -99,9 +99,9 @@ if __name__ == '__main__':
         advModel, model, encoder, discriminator = get_adv_bilstm_maxpool_keras(dim, emb_dim, max_words, maxlen,
                                                                                embedding_layer, class_num, isPairData,
                                                                                weight)
-        runName = "%s_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s_%s" % (dataset,
-                                                          modelName, dim, max_words, maxlen, weight,
-                                                          pop_percent, discMode,
+        runName = "%s_%s_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s" % (dataset,
+                                                          modelName, discMode, dim, max_words, maxlen, weight,
+                                                          pop_percent,
                                                           datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
     print("Load model: %s" % runName)
 
