@@ -16,7 +16,6 @@ from sklearn.model_selection import train_test_split
 from keras.utils.np_utils import to_categorical
 
 
-
 def get_imbd(max_words=10000, maxlen=500):
     print('Loading data...')
     old = np.load
@@ -39,7 +38,6 @@ def get_imbd(max_words=10000, maxlen=500):
 # ["MRPC", "TREC", "SNLI", "SICK_R", "SICK_E", "STS", "SST2", "SST5", "SUBJ", "MR", "CR", "MPQA"]
 
 def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
-
     if dataset == "TREC":
         class_num = 6
     elif dataset in ["SICK_E", "SNLI"]:
@@ -54,13 +52,12 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
     if dataset == "MRPC":
         # Pair datasets, it does not provide val set
 
-        mrpc = MRPCEval(path+"data/MRPC/")
+        mrpc = MRPCEval(path + "data/MRPC/")
 
         sen1_train = mrpc.mrpc_data['train']['X_A']
         sen2_train = mrpc.mrpc_data['train']['X_B']
         sen1_test = mrpc.mrpc_data['test']['X_A']
         sen2_test = mrpc.mrpc_data['test']['X_B']
-
 
         corpus = sen1_train + sen2_train + sen1_test + sen2_test
 
@@ -72,13 +69,13 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
     if dataset in ["SUBJ", "MR", "CR", "MPQA"]:
 
         if dataset == "CR":
-            eval = CREval(path+"data/CR/")
+            eval = CREval(path + "data/CR/")
         elif dataset == "MR":
-            eval = MREval(path+"data/MR/")
+            eval = MREval(path + "data/MR/")
         elif dataset == "SUBJ":
-            eval = SUBJEval(path+"data/SUBJ/")
+            eval = SUBJEval(path + "data/SUBJ/")
         elif dataset == "MPQA":
-            eval = MPQAEval(path+"data/MPQA/")
+            eval = MPQAEval(path + "data/MPQA/")
 
         corpus = eval.samples
         labels = eval.labels
@@ -93,7 +90,7 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         class_num = 2
 
     elif dataset == "TREC":
-        trec = TRECEval(path+"data/TREC/")
+        trec = TRECEval(path + "data/TREC/")
 
         x_train = trec.train["X"]
         y_train = trec.train["y"]
@@ -108,7 +105,7 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         class_num = 6
 
     elif dataset == "SNLI":
-        snli = SNLIEval(path+"data/SNLI/")
+        snli = SNLIEval(path + "data/SNLI/")
         corpus = snli.samples
 
         sen1_train = snli.data['train'][0]
@@ -128,10 +125,10 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
     elif dataset in ["SICK_R", "SICK_E", "STS"]:
         if dataset == "SICK_R":
-            sick = SICKRelatednessEval(path+"data/SICK/")
+            sick = SICKRelatednessEval(path + "data/SICK/")
             class_num = 1
         elif dataset == "SICK_E":
-            sick = SICKEntailmentEval(path+"data/SICK/")
+            sick = SICKEntailmentEval(path + "data/SICK/")
             class_num = 3
         elif dataset == "STS":
             sick = STSBenchmarkEval(path + "data/STS/STSBenchmark/")
@@ -148,17 +145,20 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
         corpus = sen1_train + sen2_train + sen1_val + sen2_val + sen1_test + sen2_test
 
-        y_train = np.array(sick.sick_data['train']["y"]) if dataset != "SICK_E" else to_categorical(sick.sick_data['train']["y"])
-        y_val = np.array(sick.sick_data['dev']["y"]) if dataset != "SICK_E" else to_categorical(sick.sick_data['dev']["y"])
-        y_test = np.array(sick.sick_data['test']["y"]) if dataset != "SICK_E" else to_categorical(sick.sick_data['test']["y"])
+        y_train = np.array(sick.sick_data['train']["y"]) if dataset != "SICK_E" else to_categorical(
+            sick.sick_data['train']["y"])
+        y_val = np.array(sick.sick_data['dev']["y"]) if dataset != "SICK_E" else to_categorical(
+            sick.sick_data['dev']["y"])
+        y_test = np.array(sick.sick_data['test']["y"]) if dataset != "SICK_E" else to_categorical(
+            sick.sick_data['test']["y"])
 
     elif dataset in ["SST2", "SST5"]:
         if dataset == "SST2":
-            sst = SSTEval(path+"data/SST/binary", nclasses=2)
+            sst = SSTEval(path + "data/SST/binary", nclasses=2)
         else:
-            sst = SSTEval(path+"data/SST/fine/", nclasses= 5)
+            sst = SSTEval(path + "data/SST/fine/", nclasses=5)
 
-        class_num = 2 if dataset == "SST2" else 1 # SST5 labels are 0 - 5 so regression task
+        class_num = 2 if dataset == "SST2" else 1  # SST5 labels are 0 - 5 so regression task
 
         x_train = sst.sst_data["train"]["X"]
         y_train = np.array(sst.sst_data["train"]["y"])
@@ -269,7 +269,8 @@ def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
     elif mode == "idf":
 
         corpus = []
-        for i in np.concatenate([x_train, x_test]):
+        tmp = np.concatenate([x_train[0], x_train[1], x_test[0], x_test[1]]) if isPairData else np.concatenate([x_train, x_test])
+        for i in tmp:
             corpus.append(' '.join(i.astype(str)))
 
         tfidf = TfidfVectorizer()
