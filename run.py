@@ -1,17 +1,16 @@
 import numpy as np
 import pandas as pd
 from keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger, Callback
-from keras.models import load_model
-from keras.preprocessing.sequence import pad_sequences
 
 import argparse
 from time import time
 from Dataset import *
+from FRAGE import FRAGE
 from Models import *
 from datetime import datetime
 from sklearn.utils import class_weight
 import math
-from utils import get_pretrain_embeddings
+from utils import get_pretrain_embeddings, save2file
 
 
 def parse_args():
@@ -96,32 +95,15 @@ if __name__ == '__main__':
     #     advModel, model, encoder, discriminator = get_adv_bilstm_maxpool(dim, emb_dim, max_words, maxlen,
     #                                                                      embedding_layer, class_num, isPairData)
     elif modelName == "adv_bilstm2":
-        advModel, model, encoder, discriminator = get_adv_bilstm_maxpool_keras(dim, emb_dim, max_words, maxlen,
-                                                                               embedding_layer, class_num, isPairData,
-                                                                               weight)
+        run = FRAGE(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData,weight)
         runName = "%s_%s_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s" % (dataset,
                                                           modelName, discMode, dim, max_words, maxlen, weight,
                                                           pop_percent,
                                                           datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
+        run.init(x_train, discMode, isPairData, batch_size, pop_percent)
+
     print("Load model: %s" % runName)
-
-    with open(path + "out/%s.res" % runName, "a") as myfile:
-        myfile.write(runName + "\n")
-
-    if "adv" in modelName:
-        disc_x, disc_y = get_discriminator_train_data(x_train, x_test, discMode, isPairData)
-
-        # set first 20% words as popular word
-        if modelName == "adv_bilstm":
-            disc_y[:int(len(disc_y) * 0.2)] = 1
-            disc_class_weights = class_weight.compute_class_weight('balanced', np.unique(disc_y), disc_y)
-            print("Disc_class_weight: ", disc_class_weights)
-        else:
-            # disc_y[:int(len(disc_y) * 0.5)] = 1
-            popular_x = disc_x[:int(len(disc_y) * pop_percent)]
-            rare_x = disc_x[int(len(disc_y) * pop_percent):]
-            popular_y = np.ones(batch_size)
-            rare_y = np.zeros(batch_size)
+    save2file(path + "out/%s.res" % runName, runName)
 
     if "adv" in modelName:
         minMSE = 9999999
@@ -129,114 +111,29 @@ if __name__ == '__main__':
         for epoch in range(epochs):
 
             t1 = time()
+            output = run.train(x_train, y_train, batch_size, epoch, isPairData)
+            t2 = time()
+            save2file(path + "out/%s.out" % runName, output)
 
-            if modelMode == "adv_bilstm":
+            # Eval
+            val_res = model.test_on_batch(x_val, y_val)
+            test_res = model.test_on_batch(x_test, y_test)
+            output = "Val acc: %f, Test acc: %f" % (val_res[1], test_res[1])
+            save2file(path + "out/%s.res" % runName, output)
 
-                for i in range(math.ceil(y_train.shape[0] / batch_size)):
-
-                    idx = np.random.randint(0, y_train.shape[0], batch_size)
-                    _x_train = x_train[idx] if not isPairData else [x_train[0][idx], x_train[1][idx]]
-                    _y_train = y_train[idx]
-
-                    idx = np.random.randint(0, len(disc_x), batch_size)
-                    _disc_x = disc_x[idx]
-                    _disc_y = disc_y[idx]
-
-                    _disc_x = encoder.predict(_disc_x).squeeze()
-                    #
-                    if modelMode == 1:
-                        dis_loss = discriminator.train_on_batch(_disc_x, _disc_y, class_weight=disc_class_weights)
-                    elif modelMode == 2:
-                        dis_loss = discriminator.train_on_batch(encoder.predict(disc_x).squeeze(), disc_y,
-                                                                class_weight=disc_class_weights)
-
-                    loss = advModel.train_on_batch([_x_train, _disc_x] if not isPairData else _x_train + [_disc_x],
-                                                   [_y_train, _disc_y],
-                                                   class_weight=[[1] * _y_train.shape[-1], disc_class_weights])
-
-                t2 = time()
-                res = model.test_on_batch(x_val, y_val)
-                val_loss = res[0]
-                dis_res = discriminator.test_on_batch(encoder.predict(disc_x).squeeze(), disc_y)
-                t3 = time()
-
-                output = "Epoch %d, train[%.1f s], Dloss: %f, Dacc: %f, Mloss: %f, acc: %f, test[%.1f s]" % (
-                    epoch, t2 - t1, dis_loss[0], dis_loss[1], res[0], res[1], t3 - t2)
-                with open(path + "out/%s.out" % runName, "a") as myfile:
-                    myfile.write(output + "\n")
-                print(output)
-
-                res = model.test_on_batch(x_test, y_test)
-                output = "Test acc: %f" % res[1]
-                with open(path + "out/%s.test" % runName, "a") as myfile:
-                    myfile.write(output + "\n")
-                print(output)
-            elif modelName == "adv_bilstm2":
-
-                t1 = time()
-                for i in range(math.ceil(y_train.shape[0] / batch_size)):
-                    idx = np.random.randint(0, y_train.shape[0], batch_size)
-                    _x_train = x_train[idx] if not isPairData else [x_train[0][idx], x_train[1][idx]]
-                    _y_train = y_train[idx]
-
-                    idx = np.random.randint(0, len(popular_x), batch_size)
-                    _popular_x = popular_x[idx]
-                    idx = np.random.randint(0, len(rare_x), batch_size)
-                    _rare_x = rare_x[idx]
-
-                    _popular_x = encoder.predict(_popular_x).squeeze()
-                    _rare_x = encoder.predict(_rare_x).squeeze()
-
-                    d_loss_popular = discriminator.train_on_batch(_popular_x, popular_y)
-                    d_loss_rare = discriminator.train_on_batch(_rare_x, rare_y)
-
-                    d_loss = 0.5 * np.add(d_loss_popular, d_loss_rare)
-
-                    idx = np.random.randint(0, len(popular_x), int(batch_size / 2))
-                    _popular_x = popular_x[idx]
-                    idx = np.random.randint(0, len(rare_x), int(batch_size / 2))
-                    _rare_x = rare_x[idx]
-
-                    _popular_rare_x = np.concatenate([_popular_x, _rare_x])
-
-                    _popular_rare_y = np.concatenate([np.zeros(int(batch_size / 2)), np.ones(int(batch_size / 2))])
-
-                    # print(advModel.predict([_x_train, _popular_rare_x]))
-
-                    g_loss = advModel.train_on_batch(
-                        [_x_train, _popular_rare_x] if not isPairData else _x_train + [_popular_rare_x],
-                        [_y_train, _popular_rare_y])
-
-                t2 = time()
-
-                output = "%d [D loss: %f, acc: %.2f%%] [G loss: %f, acc: %f] [%.1f s]" % (
-                    epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1], t2 - t1)
-
-                with open(path + "out/%s.out" % runName, "a") as myfile:
-                    myfile.write(output + "\n")
-                print(output)
-
-                val_res = model.test_on_batch(x_val, y_val)
-                test_res = model.test_on_batch(x_test, y_test)
-                output = "Val acc: %f, Test acc: %f" % (val_res[1], test_res[1])
-                with open(path + "out/%s.res" % runName, "a") as myfile:
-                    myfile.write(output + "\n")
-                print(output)
-
-
-                # Early stopping strategy: MSE and ACC
-                if class_num == 1:
-                    if minMSE > val_res[1]:
-                        minMSE = val_res[1]
-                    else:
-                        print("Early stopping")
-                        break
+            # Early stopping strategy: MSE and ACC
+            if class_num == 1:
+                if minMSE > val_res[1]:
+                    minMSE = val_res[1]
                 else:
-                    if maxACC < val_res[1]:
-                        maxACC = val_res[1]
-                    else:
-                        print("Early stopping")
-                        break
+                    print("Early stopping")
+                    break
+            else:
+                if maxACC < val_res[1]:
+                    maxACC = val_res[1]
+                else:
+                    print("Early stopping")
+                    break
     else:
         # Callbacks
         # es = EarlyStopping(monitor='val_loss', min_delta=0, patience=1, verbose=1, mode='min')

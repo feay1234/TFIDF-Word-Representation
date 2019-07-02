@@ -246,10 +246,11 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
     return x_train, y_train, x_val, y_val, x_test, y_test, word_index, class_num, MAX_SEQUENCE_LENGTH
 
 
-def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
+
+# def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
+def get_discriminator_train_data(x_train, mode="tf", isPairData=False):
     # extract sentence-pair data or sentence data
-    corpus = np.concatenate([x_train[0], x_train[1], x_test[0], x_test[1]]) if isPairData else np.concatenate(
-        [x_train, x_test])
+    corpus = np.concatenate([x_train[0], x_train[1]]) if isPairData else x_train
     if mode == "tf":
         term_frequency = {}
         for i in corpus:
@@ -269,7 +270,7 @@ def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
     elif mode == "idf":
 
         corpus = []
-        tmp = np.concatenate([x_train[0], x_train[1], x_test[0], x_test[1]]) if isPairData else np.concatenate([x_train, x_test])
+        tmp = np.concatenate([x_train[0], x_train[1]]) if isPairData else x_train
         for i in tmp:
             corpus.append(' '.join(i.astype(str)))
 

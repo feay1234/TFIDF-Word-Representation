@@ -45,3 +45,12 @@ def get_pretrain_embeddings(path, MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LEN
                                 embeddings_initializer=Constant(embedding_matrix))
 
     return embedding_layer
+
+
+
+
+def save2file(path, output):
+
+    with open(path, "a") as myfile:
+        myfile.write(output + "\n")
+    print(output)
