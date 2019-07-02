@@ -50,7 +50,6 @@ def get_pretrain_embeddings(path, MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LEN
 
 
 def save2file(path, output):
-
     with open(path, "a") as myfile:
         myfile.write(output + "\n")
     print(output)

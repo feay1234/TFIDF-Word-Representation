@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument('--path', type=str, help='Path to data', default="")
 
     parser.add_argument('--model', type=str,
-                        help='Model Name: lstm', default="adv_bilstm2")
+                        help='Model Name: lstm', default="adv_bilstm")
 
     parser.add_argument('--data', type=str,
                         help='Dataset name', default="SICK_E")
@@ -71,10 +71,7 @@ if __name__ == '__main__':
     emb_dim = args.ed
     batch_size = args.bs
     weight = args.w
-
     pop_percent = args.pp
-
-    # epochs = 1
 
 
     isPairData = True if dataset in ["QQP", "MRPC", "SICK_R", "SICK_E", "SNLI", "STS"] else False
@@ -91,10 +88,7 @@ if __name__ == '__main__':
                                              modelName, dim, max_words, maxlen,
                                              datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
 
-    # elif modelName == "adv_bilstm":
-    #     advModel, model, encoder, discriminator = get_adv_bilstm_maxpool(dim, emb_dim, max_words, maxlen,
-    #                                                                      embedding_layer, class_num, isPairData)
-    elif modelName == "adv_bilstm2":
+    elif modelName == "adv_bilstm":
         run = FRAGE(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData,weight)
         runName = "%s_%s_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s" % (dataset,
                                                           modelName, discMode, dim, max_words, maxlen, weight,
@@ -102,7 +96,6 @@ if __name__ == '__main__':
                                                           datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
         run.init(x_train, discMode, isPairData, batch_size, pop_percent)
 
-    print("Load model: %s" % runName)
     save2file(path + "out/%s.res" % runName, runName)
 
     if "adv" in modelName:
@@ -152,9 +145,7 @@ if __name__ == '__main__':
                 val_res = model.test_on_batch(x_val, y_val)
                 test_res = model.test_on_batch(x_test, y_test)
                 output = "Val acc: %f, Test acc: %f" % (val_res[1], test_res[1])
-                with open(path + "out/%s.res" % runName, "a") as myfile:
-                    myfile.write(output + "\n")
-                print(output)
+                save2file(path + "out/%s.res" % runName, output)
 
 
         his = model.fit(x_train, y_train, batch_size=batch_size, verbose=2, epochs=epochs, shuffle=True,
