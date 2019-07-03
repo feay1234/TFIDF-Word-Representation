@@ -4,6 +4,8 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, CSVLogger, Callback
 
 import argparse
 from time import time
+
+from BiLSTM import BiLSTM
 from Dataset import *
 from FRAGE import FRAGE
 from Models import *
@@ -73,7 +75,6 @@ if __name__ == '__main__':
     weight = args.w
     pop_percent = args.pp
 
-
     isPairData = True if dataset in ["QQP", "MRPC", "SICK_R", "SICK_E", "SNLI", "STS"] else False
 
     x_train, y_train, x_val, y_val, x_test, y_test, word_index, class_num, maxlen = get_datasets(path, dataset,
@@ -81,72 +82,49 @@ if __name__ == '__main__':
                                                                                                  maxlen, isPairData)
     embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
-
     if modelName == "bilstm":
-        model = get_bilstm_maxpool(dim, max_words, maxlen, embedding_layer, class_num, isPairData)
+        model = BiLSTM(dim, max_words, maxlen, embedding_layer, class_num, isPairData)
         runName = "%s_%s_d%d_w%d_ml%d_%s" % (dataset,
                                              modelName, dim, max_words, maxlen,
                                              datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
 
     elif modelName == "adv_bilstm":
-        run = FRAGE(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData,weight)
+        run = FRAGE(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight)
         runName = "%s_%s_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s" % (dataset,
-                                                          modelName, discMode, dim, max_words, maxlen, weight,
-                                                          pop_percent,
-                                                          datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
+                                                             modelName, discMode, dim, max_words, maxlen, weight,
+                                                             pop_percent,
+                                                             datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
         run.init(x_train, discMode, isPairData, batch_size, pop_percent)
 
     save2file(path + "out/%s.res" % runName, runName)
 
-    if "adv" in modelName:
-        minMSE = 9999999
-        maxACC = -999999
-        for epoch in range(epochs):
+    minMSE = 9999999
+    maxACC = -999999
 
-            t1 = time()
-            output = run.train(x_train, y_train, batch_size, epoch, isPairData)
-            t2 = time()
-            save2file(path + "out/%s.out" % runName, output)
+    for epoch in range(epochs):
 
-            # Eval
-            val_res = model.test_on_batch(x_val, y_val)
-            test_res = model.test_on_batch(x_test, y_test)
-            output = "Val acc: %f, Test acc: %f" % (val_res[1], test_res[1])
-            save2file(path + "out/%s.res" % runName, output)
+        t1 = time()
+        output = run.train(x_train, y_train, batch_size, epoch, isPairData)
+        t2 = time()
+        save2file(path + "out/%s.out" % runName, output)
 
-            # Early stopping strategy: MSE and ACC
-            if class_num == 1:
-                if minMSE > val_res[1]:
-                    minMSE = val_res[1]
-                else:
-                    print("Early stopping")
-                    break
+        # Eval
+        val_res = run.model.test_on_batch(x_val, y_val)
+        test_res = run.model.test_on_batch(x_test, y_test)
+        output = "Val acc: %f, Test acc: %f" % (val_res[1], test_res[1])
+        save2file(path + "out/%s.res" % runName, output)
+
+        # Early stopping strategy: MSE and ACC
+        if class_num == 1:
+            if minMSE > val_res[1]:
+                minMSE = val_res[1]
             else:
-                if maxACC < val_res[1]:
-                    maxACC = val_res[1]
-                else:
-                    print("Early stopping")
-                    break
-    else:
-        # Callbacks
-        # es = EarlyStopping(monitor='val_loss', min_delta=0, patience=1, verbose=1, mode='min')
-        # cp = ModelCheckpoint(path + 'h5/%s.h5' % runName, monitor='val_loss', verbose=2, save_best_only=True,
-        #                      save_weights_only=False,
-        #                      mode='min', period=1)
-        logger = CSVLogger(path + "out/%s.out" % runName)
+                print("Early stopping")
+                break
+        else:
+            if maxACC < val_res[1]:
+                maxACC = val_res[1]
+            else:
+                print("Early stopping")
+                break
 
-
-        class Eval(Callback):
-
-            def on_epoch_end(self, epoch, logs=None):
-                # def on_batch_end(self, batch, logs=None):
-
-                # def on_epoch_end(self, epoch, logs=None):
-                val_res = model.test_on_batch(x_val, y_val)
-                test_res = model.test_on_batch(x_test, y_test)
-                output = "Val acc: %f, Test acc: %f" % (val_res[1], test_res[1])
-                save2file(path + "out/%s.res" % runName, output)
-
-
-        his = model.fit(x_train, y_train, batch_size=batch_size, verbose=2, epochs=epochs, shuffle=True,
-                        validation_data=(x_val, y_val), callbacks=[Eval(), logger])

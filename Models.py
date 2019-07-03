@@ -21,57 +21,7 @@ def get_lstm(dim, max_words, maxlen, class_num):
     return model
 
 
-# InferSent, Facebook https://arxiv.org/pdf/1705.02364.pdf
-def get_bilstm_maxpool(dim, max_words, maxlen, embedding_layer, class_num, isPairData):
-    uInput = Input(shape=(maxlen,))
-    vInput = Input(shape=(maxlen,))
 
-    encoder = Sequential()
-    encoder.add(embedding_layer)
-    encoder.add(Bidirectional(LSTM(dim, return_sequences=True)))
-    encoder.add(GlobalMaxPooling1D())
-
-    uEmb = encoder(uInput)
-    if not isPairData:
-        merge = uEmb
-    else:
-
-        vEmb = encoder(vInput)
-
-        def abs_diff(X):
-            return K.abs(X[0] - X[1])
-
-        abs = Lambda(abs_diff)
-
-        concat = Concatenate()([uEmb, vEmb])
-        sub = abs([uEmb, vEmb])
-        mul = Multiply()([uEmb, vEmb])
-
-        merge = Concatenate()([concat, sub, mul])
-
-    dense = Dense(dim, activation="relu")
-
-    if class_num == 1:
-        finalDense = Dense(1, activation="linear")
-        loss = "mean_squared_error"
-        metric = "mse"
-    elif class_num == 2:
-        finalDense = Dense(1, activation="sigmoid")
-        loss = "binary_crossentropy"
-        metric = "acc"
-    else:
-        finalDense = Dense(class_num, activation="softmax")
-        loss = "categorical_crossentropy"
-        metric = "acc"
-
-    out = finalDense(dense(merge))
-    model = Model([uInput, vInput] if isPairData else [uInput], out)
-
-    model.compile(loss=loss,
-                  optimizer='adam',
-                  metrics=[metric])
-
-    return model
 
 
 def get_adv_bilstm_maxpool(dim, em_dim, max_words, maxlen, embedding_layer, class_num, isPairData):
