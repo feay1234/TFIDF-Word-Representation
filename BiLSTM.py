@@ -5,6 +5,7 @@ from keras.layers import LSTM, Input, Flatten, Subtract, Multiply, Concatenate
 from keras.initializers import RandomUniform
 import tensorflow as tf
 from keras import backend as K
+from time import time
 from keras.constraints import MinMaxNorm
 import numpy as np
 import math
@@ -14,13 +15,11 @@ from sklearn.utils import class_weight
 
 from Dataset import get_discriminator_train_data
 
-
 # InferSent, Facebook https://arxiv.org/pdf/1705.02364.pdf
 from utils import save2file
 
 
 class BiLSTM():
-
     def __init__(self, dim, max_words, maxlen, embedding_layer, class_num, isPairData):
 
         uInput = Input(shape=(maxlen,))
@@ -68,13 +67,12 @@ class BiLSTM():
         self.model = Model([uInput, vInput] if isPairData else [uInput], out)
 
         self.model.compile(loss=loss,
-                      optimizer='adam',
-                      metrics=[metric])
+                           optimizer='adam',
+                           metrics=[metric])
 
     def init(self, path, runName):
         self.path = path
         self.runName = runName
-
 
     def train(self, x_train, y_train, epoch, batch_size, isPairData):
 
@@ -90,15 +88,19 @@ class BiLSTM():
         #
         #     def on_epoch_end(self, epoch, logs=None):
         #         def on_batch_end(self, batch, logs=None):
-                #
-                # def on_epoch_end(self, epoch, logs=None):
-                # val_res = model.test_on_batch(x_val, y_val)
-                # test_res = model.test_on_batch(x_test, y_test)
-                # output = "Val acc: %f, Test acc: %f" % (val_res[1], test_res[1])
-                # save2file(self.path + "out/%s.res" % self.runName, output)
+        #
+        # def on_epoch_end(self, epoch, logs=None):
+        # val_res = model.test_on_batch(x_val, y_val)
+        # test_res = model.test_on_batch(x_test, y_test)
+        # output = "Val acc: %f, Test acc: %f" % (val_res[1], test_res[1])
+        # save2file(self.path + "out/%s.res" % self.runName, output)
         #
         #
         # his = self.model.fit(x_train, y_train, batch_size=batch_size, verbose=0, epochs=1, shuffle=True,
         #                 validation_data=(x_val, y_val), callbacks=[Eval(), logger])
-
+        t1 = time()
         his = self.model.fit(x_train, y_train, batch_size=batch_size, verbose=0, epochs=1, shuffle=True)
+        t2 = time()
+        output = "%d loss: %f, acc: %f [%.1f s]" % (
+            epoch, his.history["loss"][0], his.history["acc"][0], t2 - t1)
+        return output

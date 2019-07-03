@@ -21,10 +21,10 @@ def parse_args():
     parser.add_argument('--path', type=str, help='Path to data', default="")
 
     parser.add_argument('--model', type=str,
-                        help='Model Name: lstm', default="adv_bilstm")
+                        help='Model Name: lstm', default="bilstm")
 
     parser.add_argument('--data', type=str,
-                        help='Dataset name', default="SICK_E")
+                        help='Dataset name', default="CR")
 
     parser.add_argument('--d', type=int, default=300,
                         help='Dimension')
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     embedding_layer = get_pretrain_embeddings(path, max_words, emb_dim, maxlen, word_index)
 
     if modelName == "bilstm":
-        model = BiLSTM(dim, max_words, maxlen, embedding_layer, class_num, isPairData)
+        run = BiLSTM(dim, max_words, maxlen, embedding_layer, class_num, isPairData)
         runName = "%s_%s_d%d_w%d_ml%d_%s" % (dataset,
                                              modelName, dim, max_words, maxlen,
                                              datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
@@ -103,8 +103,7 @@ if __name__ == '__main__':
 
     for epoch in range(epochs):
 
-        t1 = time()
-        output = run.train(x_train, y_train, batch_size, epoch, isPairData)
+        output = run.train(x_train, y_train, epoch, batch_size, isPairData)
         t2 = time()
         save2file(path + "out/%s.out" % runName, output)
 

@@ -3,6 +3,7 @@ from keras.layers import Dense, Embedding, Bidirectional, GlobalMaxPooling1D, La
 from keras.layers import LSTM, Input, Flatten, Subtract, Multiply, Concatenate
 from keras.initializers import RandomUniform
 import tensorflow as tf
+from time import time
 from keras import backend as K
 from keras.constraints import MinMaxNorm
 import numpy as np
@@ -103,6 +104,7 @@ class FRAGE():
 
 
     def train(self, x_train, y_train, epoch, batch_size, isPairData):
+        t1 = time()
         for i in range(math.ceil(y_train.shape[0] / batch_size)):
             idx = np.random.randint(0, y_train.shape[0], batch_size)
             _x_train = x_train[idx] if not isPairData else [x_train[0][idx], x_train[1][idx]]
@@ -116,8 +118,8 @@ class FRAGE():
             _popular_x = self.encoder.predict(_popular_x).squeeze()
             _rare_x = self.encoder.predict(_rare_x).squeeze()
 
-            d_loss_popular = self.discriminator.train_on_batch(_popular_x, popular_y)
-            d_loss_rare = self.discriminator.train_on_batch(_rare_x, rare_y)
+            d_loss_popular = self.discriminator.train_on_batch(_popular_x, self.popular_y)
+            d_loss_rare = self.discriminator.train_on_batch(_rare_x, self.rare_y)
 
             d_loss = 0.5 * np.add(d_loss_popular, d_loss_rare)
 
@@ -137,6 +139,8 @@ class FRAGE():
                 [_y_train, _popular_rare_y])
 
 
+        t2 = time()
         output = "%d [D loss: %f, acc: %.2f%%] [G loss: %f, acc: %f] [%.1f s]" % (
             epoch, d_loss[0], 100 * d_loss[1], g_loss[0], g_loss[1], t2 - t1)
-        return
+
+        return output
