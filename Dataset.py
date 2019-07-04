@@ -247,42 +247,4 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
 
 
 
-# def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
-def get_discriminator_train_data(x_train, mode="tf", isPairData=False):
-    # extract sentence-pair data or sentence data
-    corpus = np.concatenate([x_train[0], x_train[1]]) if isPairData else x_train
-    if mode == "tf":
-        term_frequency = {}
-        for i in corpus:
-            for j in i:
-                if j in term_frequency:
-                    term_frequency[j] += 1
-                else:
-                    term_frequency[j] = 1
 
-        term_frequency = {k: v for k, v in sorted(term_frequency.items(), key=lambda x: x[1])[::-1]}
-        term_frequency = np.array(list(term_frequency.keys()))
-
-        label = np.zeros(len(term_frequency))
-
-        return term_frequency, label
-
-    elif mode == "idf":
-
-        corpus = []
-        tmp = np.concatenate([x_train[0], x_train[1]]) if isPairData else x_train
-        for i in tmp:
-            corpus.append(' '.join(i.astype(str)))
-
-        tfidf = TfidfVectorizer()
-        tfidf.fit(corpus)
-
-        wordIDF = {int(k): v for k, v in zip(tfidf.get_feature_names(), tfidf.idf_)}
-        wordIDF = {k: v for k, v in sorted(wordIDF.items(), key=lambda x: x[1])[::-1]}
-        wordIDF = np.array(list(wordIDF.keys()))
-
-        label = np.zeros(len(wordIDF))
-        # set first 20% words as popular word
-        label[:int(len(label) * 0.2)] = 1
-
-        return wordIDF, label

@@ -17,7 +17,7 @@ def get_pretrain_embeddings(path, MAX_NUM_WORDS, EMBEDDING_DIM, MAX_SEQUENCE_LEN
             coefs = np.fromstring(coefs, 'f', sep=' ')
             embeddings_index[word] = coefs
             break
-    # 
+    #
     print('Found %s word vectors.' % len(embeddings_index))
 
     print('Preparing embedding matrix.')

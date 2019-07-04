@@ -43,7 +43,7 @@ def parse_args():
     parser.add_argument('--dm', type=str, default="idf",
                         help='Discriminator mode: tf or idf')
 
-    parser.add_argument('--mode', type=int, default="1",
+    parser.add_argument('--mode', type=int, default="0",
                         help='Mode:')
 
     parser.add_argument('--bs', type=int, default=32,
@@ -89,12 +89,12 @@ if __name__ == '__main__':
                                              datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
 
     elif modelName == "adv_bilstm":
-        run = FRAGE(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight)
-        runName = "%s_%s_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s" % (dataset,
-                                                             modelName, discMode, dim, max_words, maxlen, weight,
+        run = FRAGE(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight, modelMode)
+        runName = "%s_%s_m%d_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s" % (dataset,
+                                                             modelName, modelMode, discMode, dim, max_words, maxlen, weight,
                                                              pop_percent,
                                                              datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
-        run.init(x_train, discMode, isPairData, batch_size, pop_percent)
+        run.init(x_train, discMode, isPairData, pop_percent)
 
     save2file(path + "out/%s.res" % runName, runName)
 
