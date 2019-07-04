@@ -50,6 +50,8 @@ def parse_args():
                         help='Batch Size:')
     parser.add_argument('--w', type=float, default=0.1,
                         help='Weight:')
+    parser.add_argument('--w2', type=float, default=0.1,
+                        help='Weight:')
     parser.add_argument('--pp', type=float, default=0.2,
                         help='Popularity Percentage:')
 
@@ -73,6 +75,7 @@ if __name__ == '__main__':
     emb_dim = args.ed
     batch_size = args.bs
     weight = args.w
+    weight2 = args.w2
     pop_percent = args.pp
 
     isPairData = True if dataset in ["QQP", "MRPC", "SICK_R", "SICK_E", "SNLI", "STS"] else False
@@ -89,9 +92,9 @@ if __name__ == '__main__':
                                              datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
 
     elif modelName == "frage":
-        run = FRAGE(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight, modelMode)
-        runName = "%s_%s_m%d_%s_d%d_w%d_ml%d_w%.3f_pp%.3f_%s" % (dataset,
-                                                             modelName, modelMode, discMode, dim, max_words, maxlen, weight,
+        run = FRAGE(dim, emb_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight, weight2, modelMode)
+        runName = "%s_%s_m%d_%s_d%d_w%d_ml%d_w%.3f_w2%.3f_pp%.3f_%s" % (dataset,
+                                                             modelName, modelMode, discMode, dim, max_words, maxlen, weight, weight2,
                                                              pop_percent,
                                                              datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
         run.init(x_train, discMode, isPairData, pop_percent)

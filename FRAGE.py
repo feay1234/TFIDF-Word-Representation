@@ -18,7 +18,7 @@ from sklearn.utils import class_weight
 class FRAGE():
 
 
-    def __init__(self, dim, em_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight=0.1, mode=0):
+    def __init__(self, dim, em_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight=0.1, weight2=0.1, mode=0):
 
         self.mode = mode
         self.dim = dim
@@ -103,7 +103,7 @@ class FRAGE():
                                   [out, validity_b, validity_r])
             self.advModel.compile(loss=[loss, "binary_crossentropy", "mean_squared_error"],
                                   optimizer='adam',
-                                  loss_weights=[1, weight, weight],
+                                  loss_weights=[1, weight, weight2],
                                   metrics=[metric, "acc", "mse"])
 
     def init(self, x_train, discMode, isPairData, pop_percent=0.2):
