@@ -1,24 +1,11 @@
 from keras.callbacks import CSVLogger, Callback
 from keras.models import Sequential, Model
-from keras.layers import Dense, Embedding, Bidirectional, GlobalMaxPooling1D, Lambda
-from keras.layers import LSTM, Input, Flatten, Subtract, Multiply, Concatenate
-from keras.initializers import RandomUniform
-import tensorflow as tf
+from keras.layers import Dense, Bidirectional, GlobalMaxPooling1D, Lambda
+from keras.layers import LSTM, Input, Multiply, Concatenate
 from keras import backend as K
 from time import time
-from keras.constraints import MinMaxNorm
-import numpy as np
-import math
-# Keras version
-# https://github.com/eriklindernoren/Keras-GAN/blob/master/aae/aae.py
-from sklearn.utils import class_weight
-
-from Dataset import get_discriminator_train_data
 
 # InferSent, Facebook https://arxiv.org/pdf/1705.02364.pdf
-from utils import save2file
-
-
 class BiLSTM():
     def __init__(self, dim, max_words, maxlen, embedding_layer, class_num, isPairData):
 

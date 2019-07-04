@@ -27,6 +27,7 @@ class FRAGE():
         uInput = Input(shape=(maxlen,))
         vInput = Input(shape=(maxlen,))
         wordInput = Input(shape=(1,))
+        wordRegInput = Input(shape=(1,))
 
         self.encoder = Sequential()
         self.encoder.add(embedding_layer)
@@ -36,11 +37,13 @@ class FRAGE():
 
         if self.mode < 2:
             self.discriminator = self.generate_binary_discriminator() if mode == 0 else self.generate_reg_discriminator()
-        else:
+            self.discriminator.trainable = False
+        elif self.mode == 2:
             self.discriminator_b = self.generate_binary_discriminator()
             self.discriminator_r = self.generate_reg_discriminator()
+            self.discriminator_b.trainable = False
+            self.discriminator_r.trainable = False
 
-        self.discriminator.trainable = False
 
         uEmb = pool(bilstm(self.encoder(uInput)))
 
@@ -80,7 +83,7 @@ class FRAGE():
             validity = self.discriminator(Flatten()(self.encoder(wordInput)))
         else:
             validity_b = self.discriminator_b(Flatten()(self.encoder(wordInput)))
-            validity_r = self.discriminator_r(Flatten()(self.encoder(wordInput)))
+            validity_r = self.discriminator_r(Flatten()(self.encoder(wordRegInput)))
 
         out = finalDense(dense(merge))
         self.model = Model([uInput, vInput] if isPairData else [uInput], out)
@@ -95,8 +98,8 @@ class FRAGE():
                                   optimizer='adam',
                                   loss_weights=[1, weight],
                                   metrics=[metric, "acc" if self.mode == 0 else "mse"])
-        else:
-            self.advModel = Model([uInput, vInput, wordInput] if isPairData else [uInput, wordInput],
+        elif self.mode == 2:
+            self.advModel = Model([uInput, vInput, wordInput, wordRegInput] if isPairData else [uInput, wordInput, wordRegInput],
                                   [out, validity_b, validity_r])
             self.advModel.compile(loss=[loss, "binary_crossentropy", "mean_squared_error"],
                                   optimizer='adam',
@@ -113,7 +116,7 @@ class FRAGE():
         elif self.mode == 1:
             self.disc_x = x
             self.disc_y = y
-        else:
+        elif self.mode == 2:
             self.popular_x = x[:int(len(y) * pop_percent)]
             self.rare_x = x[int(len(y) * pop_percent):]
             self.disc_x = x
@@ -188,9 +191,10 @@ class FRAGE():
                 idx = np.random.randint(0, len(self.disc_x), batch_size)
                 _disc_x = self.disc_x[idx]
                 _disc_y = self.disc_y[idx]
+                _disc_x = self.encoder.predict(_disc_x).squeeze()
                 d_loss = self.discriminator.train_on_batch(_disc_x, _disc_y)
 
-                idx = np.random.randint(0, len(self.disc_x), int(batch_size / 2))
+                idx = np.random.randint(0, len(self.disc_x), batch_size)
                 _disc_x = self.disc_x[idx]
                 _disc_y = self.disc_y[idx]
 
@@ -198,7 +202,7 @@ class FRAGE():
                     [_x_train, _disc_x] if not isPairData else _x_train + [_disc_x],
                     [_y_train, _disc_y])
 
-            else:
+            elif self.mode == 2:
 
                 idx = np.random.randint(0, len(self.popular_x), batch_size)
                 _popular_x = self.popular_x[idx]
@@ -213,11 +217,12 @@ class FRAGE():
                 idx = np.random.randint(0, len(self.disc_x), batch_size)
                 _disc_x = self.disc_x[idx]
                 _disc_y = self.disc_y[idx]
+                _disc_x = self.encoder.predict(_disc_x).squeeze()
                 d_loss = self.discriminator_r.train_on_batch(_disc_x, _disc_y)
 
                 d_loss = 0.5 * np.add(np.add(d_loss_popular, d_loss_rare), d_loss)
 
-                idx = np.random.randint(0, len(self.disc_x), int(batch_size / 2))
+                idx = np.random.randint(0, len(self.disc_x), batch_size)
                 _disc_x = self.disc_x[idx]
                 _disc_y = self.disc_y[idx]
 
