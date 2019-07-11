@@ -1,5 +1,5 @@
 from keras.models import Sequential, Model
-from keras.layers import Dense, Embedding, Bidirectional, GlobalMaxPooling1D, Lambda
+from keras.layers import Dense, Embedding, Bidirectional, GlobalMaxPooling1D, Lambda, Activation
 from keras.layers import LSTM, Input, Flatten, Subtract, Multiply, Concatenate
 from keras.initializers import RandomUniform
 import tensorflow as tf
@@ -29,6 +29,9 @@ class FRAGE():
         wordInput = Input(shape=(1,))
         wordRegInput = Input(shape=(1,))
 
+        pInput = Input(shape=(1,))
+        nInput = Input(shape=(1,))
+
         self.encoder = Sequential()
         self.encoder.add(embedding_layer)
 
@@ -43,6 +46,9 @@ class FRAGE():
             self.discriminator_r = self.generate_reg_discriminator()
             self.discriminator_b.trainable = False
             self.discriminator_r.trainable = False
+        elif self.mode == 3:
+            self.discriminator = self.generate_pair_discriminator()
+            self.discriminator.trainable = False
 
 
         uEmb = pool(bilstm(self.encoder(uInput)))
@@ -81,9 +87,12 @@ class FRAGE():
 
         if self.mode < 2:
             validity = self.discriminator(Flatten()(self.encoder(wordInput)))
-        else:
+        elif self.mode == 2:
             validity_b = self.discriminator_b(Flatten()(self.encoder(wordInput)))
             validity_r = self.discriminator_r(Flatten()(self.encoder(wordRegInput)))
+        elif self.mode == 3:
+            validity = self.discriminator([Flatten()(self.encoder(pInput)), Flatten()(self.encoder(nInput))])
+
 
         out = finalDense(dense(merge))
         self.model = Model([uInput, vInput] if isPairData else [uInput], out)
@@ -105,20 +114,31 @@ class FRAGE():
                                   optimizer='adam',
                                   loss_weights=[1, weight, weight2],
                                   metrics=[metric, "acc", "mse"])
+        elif self.mode == 3:
+            self.advModel = Model([uInput, vInput, pInput, nInput] if isPairData else [uInput, pInput, nInput], [out, validity])
+            self.advModel.compile(loss=[loss, "binary_crossentropy"],
+                                  optimizer='adam',
+                                  loss_weights=[1, weight])
 
     def init(self, x_train, discMode, isPairData, pop_percent=0.2):
 
-        x, y = self.get_discriminator_train_data(x_train, discMode, isPairData)
 
         if self.mode == 0:
+            x, y = self.get_discriminator_train_data(x_train, discMode, isPairData)
             self.popular_x = x[:int(len(y) * pop_percent)]
             self.rare_x = x[int(len(y) * pop_percent):]
         elif self.mode == 1:
+            x, y = self.get_discriminator_train_data(x_train, discMode, isPairData, False)
             self.disc_x = x
             self.disc_y = y
         elif self.mode == 2:
+            x, y = self.get_discriminator_train_data(x_train, discMode, isPairData, False)
             self.popular_x = x[:int(len(y) * pop_percent)]
             self.rare_x = x[int(len(y) * pop_percent):]
+            self.disc_x = x
+            self.disc_y = y
+        elif self.mode == 3:
+            x, y = self.get_discriminator_train_data(x_train, discMode, isPairData, False)
             self.disc_x = x
             self.disc_y = y
 
@@ -149,6 +169,27 @@ class FRAGE():
         model.compile(loss='mean_squared_error',
                       optimizer='adam',
                       metrics=['mse'], loss_weights=[1])
+
+        return model
+
+    def generate_pair_discriminator(self):
+        posInput = Input(shape=(self.em_dim,))
+        negInput = Input(shape=(self.em_dim,))
+
+        # Generate Discriminator
+        disDense1 = Dense(self.dim, activation="linear", use_bias=False, kernel_initializer=RandomUniform(-0.1, 0.1))
+        disDense2 = Dense(1, activation="linear")
+        pout = disDense2(disDense1(posInput))
+        nout = disDense2(disDense1(negInput))
+
+        diff = Subtract()([pout, nout])
+
+        # Pass difference through sigmoid function.
+        pred = Activation("sigmoid")(diff)
+
+        model = Model([posInput, negInput], pred)
+
+        model.compile(loss='binary_crossentropy', optimizer='adam')
 
         return model
 
@@ -240,6 +281,33 @@ class FRAGE():
                     [_x_train, _popular_rare_x, _disc_x] if not isPairData else _x_train + [_popular_rare_x, _disc_x],
                     [_y_train, _popular_rare_y, _disc_y])
 
+            elif self.mode == 3:
+
+                _x, _y = [], []
+                for i in range(batch_size):
+                    p = np.random.randint(0, len(self.disc_x))
+                    n = np.random.randint(0, len(self.disc_x))
+                    while p == n or self.disc_y[p] <= self.disc_y[n]:
+                        p = np.random.randint(0, len(self.disc_x))
+                        n = np.random.randint(0, len(self.disc_x))
+                    _x.append([self.encoder.predict(self.disc_x[p]).squeeze(), self.encoder.predict(self.disc_x[n]).squeeze(),])
+                    _y.append(1)
+                d_loss = self.discriminator.train_on_batch(_x, _y)
+
+                _x, _y = [], []
+                for i in range(batch_size):
+                    p = np.random.randint(0, len(self.disc_x))
+                    n = np.random.randint(0, len(self.disc_x))
+                    while p == n or self.disc_y[p] <= self.disc_y[n]:
+                        p = np.random.randint(0, len(self.disc_x))
+                        n = np.random.randint(0, len(self.disc_x))
+                    _x.append([self.encoder.predict(self.disc_x[p]).squeeze(), self.encoder.predict(self.disc_x[n]).squeeze(),])
+                    _y.append(1)
+
+                g_loss = self.advModel.train_on_batch(
+                    [_x_train, _x] if not isPairData else _x_train + [_x],
+                    [_y_train, _y])
+
 
         t2 = time()
         output = "%d [D loss: %f, acc: %.2f%%] [G loss: %f, acc: %f] [%.1f s]" % (
@@ -247,7 +315,6 @@ class FRAGE():
 
         return output
 
-    # def get_discriminator_train_data(x_train, x_test, mode="tf", isPairData=False):
     def get_discriminator_train_data(self, x_train, mode="tf", isPairData=False, isBinary=True):
         # extract sentence-pair data or sentence data
         corpus = np.concatenate([x_train[0], x_train[1]]) if isPairData else x_train
