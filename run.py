@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument('--epochs', type=int, default=5,
                         help='Epoch number')
 
-    parser.add_argument('--dm', type=str, default="idf",
+    parser.add_argument('--dm', type=str, default="tf",
                         help='Discriminator mode: tf or idf')
 
     parser.add_argument('--mode', type=int, default=3,

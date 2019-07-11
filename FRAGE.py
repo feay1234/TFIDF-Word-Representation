@@ -283,29 +283,37 @@ class FRAGE():
 
             elif self.mode == 3:
 
-                _x, _y = [], []
+                _p, _n, _y = [], [], []
                 for i in range(batch_size):
                     p = np.random.randint(0, len(self.disc_x))
                     n = np.random.randint(0, len(self.disc_x))
                     while p == n or self.disc_y[p] <= self.disc_y[n]:
                         p = np.random.randint(0, len(self.disc_x))
                         n = np.random.randint(0, len(self.disc_x))
-                    _x.append([self.encoder.predict(self.disc_x[p]).squeeze(), self.encoder.predict(self.disc_x[n]).squeeze(),])
+                    _p.append(self.encoder.predict([[self.disc_x[p]]]).squeeze())
+                    _n.append(self.encoder.predict([[self.disc_x[n]]]).squeeze())
                     _y.append(1)
-                d_loss = self.discriminator.train_on_batch(_x, _y)
+                _p = np.array(_p)
+                _n = np.array(_n)
+                _y = np.array(_y)
+                d_loss = self.discriminator.train_on_batch([_p, _n], _y)
 
-                _x, _y = [], []
+                _p, _n, _y = [], [], []
                 for i in range(batch_size):
                     p = np.random.randint(0, len(self.disc_x))
                     n = np.random.randint(0, len(self.disc_x))
                     while p == n or self.disc_y[p] <= self.disc_y[n]:
                         p = np.random.randint(0, len(self.disc_x))
                         n = np.random.randint(0, len(self.disc_x))
-                    _x.append([self.encoder.predict(self.disc_x[p]).squeeze(), self.encoder.predict(self.disc_x[n]).squeeze(),])
-                    _y.append(1)
+                    _p.append(self.disc_x[p])
+                    _n.append(self.disc_x[n])
+                    _y.append(0)
+                _p = np.array(_p)
+                _n = np.array(_n)
+                _y = np.array(_y)
 
                 g_loss = self.advModel.train_on_batch(
-                    [_x_train, _x] if not isPairData else _x_train + [_x],
+                    [_x_train, _p, _n] if not isPairData else _x_train + [_p, _n],
                     [_y_train, _y])
 
 
@@ -328,11 +336,10 @@ class FRAGE():
                         term_frequency[j] = 1
 
             term_frequency = {k: v for k, v in sorted(term_frequency.items(), key=lambda x: x[1])[::-1]}
-            term_frequency = np.array(list(term_frequency.keys()))
-
+            terms = np.array(list(term_frequency.keys()))
             label = np.zeros(len(term_frequency)) if isBinary else np.array(list(term_frequency.values()))
 
-            return term_frequency, label
+            return terms, label
 
         elif mode == "idf":
 
@@ -346,10 +353,15 @@ class FRAGE():
 
             wordIDF = {int(k): v for k, v in zip(tfidf.get_feature_names(), tfidf.idf_)}
             wordIDF = {k: v for k, v in sorted(wordIDF.items(), key=lambda x: x[1])[::-1]}
-            wordIDF = np.array(list(wordIDF.keys()))
-
+            terms = np.array(list(wordIDF.keys()))
             label = np.zeros(len(wordIDF)) if isBinary else np.array(list(wordIDF.values()))
             # set first 20% words as popular word
             # label[:int(len(label) * 0.2)] = 1
 
-            return wordIDF, label
+            return terms, label
+
+
+# def __init__(self, dim, em_dim, max_words, maxlen, embedding_layer, class_num, isPairData, weight=0.1, weight2=0.1,
+#              mode=0):
+# a = FRAGE(10,10,100, 10, Embedding(100, 10), 2, True)
+# print(a.encoder.predict([4]).squeeze())
