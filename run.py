@@ -24,7 +24,7 @@ def parse_args():
                         help='Model Name: lstm', default="frage")
 
     parser.add_argument('--data', type=str,
-                        help='Dataset name', default="CR")
+                        help='Dataset name', default="TREC")
 
     parser.add_argument('--d', type=int, default=300,
                         help='Dimension')
@@ -46,7 +46,7 @@ def parse_args():
     parser.add_argument('--mode', type=int, default=3,
                         help='Mode:')
 
-    parser.add_argument('--bs', type=int, default=32,
+    parser.add_argument('--bs', type=int, default=1,
                         help='Batch Size:')
     parser.add_argument('--w', type=float, default=0.1,
                         help='Weight:')

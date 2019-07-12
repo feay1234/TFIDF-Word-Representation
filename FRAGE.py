@@ -189,7 +189,7 @@ class FRAGE():
 
         model = Model([posInput, negInput], pred)
 
-        model.compile(loss='binary_crossentropy', optimizer='adam')
+        model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['acc'])
 
         return model
 
