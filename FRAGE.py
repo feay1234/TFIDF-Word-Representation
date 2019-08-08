@@ -197,6 +197,7 @@ class FRAGE():
     def train(self, x_train, y_train, epoch, batch_size, isPairData):
         t1 = time()
         for i in range(math.ceil(y_train.shape[0] / batch_size)):
+            print(i)
             idx = np.random.randint(0, y_train.shape[0], batch_size)
             _x_train = x_train[idx] if not isPairData else [x_train[0][idx], x_train[1][idx]]
             _y_train = y_train[idx]
@@ -315,6 +316,7 @@ class FRAGE():
                 g_loss = self.advModel.train_on_batch(
                     [_x_train, _p, _n] if not isPairData else _x_train + [_p, _n],
                     [_y_train, _y])
+
 
 
         t2 = time()

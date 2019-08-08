@@ -46,7 +46,7 @@ def parse_args():
     parser.add_argument('--mode', type=int, default=3,
                         help='Mode:')
 
-    parser.add_argument('--bs', type=int, default=1,
+    parser.add_argument('--bs', type=int, default=32,
                         help='Batch Size:')
     parser.add_argument('--w', type=float, default=0.1,
                         help='Weight:')
@@ -98,6 +98,7 @@ if __name__ == '__main__':
                                                              pop_percent,
                                                              datetime.now().strftime("%m-%d-%Y_%H-%M-%S"))
         run.init(x_train, discMode, isPairData, pop_percent)
+        print("ready")
 
     save2file(path + "out/%s.res" % runName, runName)
 
@@ -105,7 +106,6 @@ if __name__ == '__main__':
     maxACC = -999999
 
     for epoch in range(epochs):
-
         output = run.train(x_train, y_train, epoch, batch_size, isPairData)
         t2 = time()
         save2file(path + "out/%s.out" % runName, output)

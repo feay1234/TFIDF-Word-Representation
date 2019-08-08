@@ -197,10 +197,10 @@ def get_datasets(path, dataset, MAX_NUM_WORDS, MAX_SEQUENCE_LENGTH, isPairData):
         corpus = sen1_train + sen2_train + sen1_test + sen2_test
         class_num = 2
 
-    # create the tokenizer
-    t = Tokenizer()
-    # fit the tokenizer on the documents
-    t.fit_on_texts(corpus)
+    # # create the tokenizer
+    # t = Tokenizer()
+    # # fit the tokenizer on the documents
+    # t.fit_on_texts(corpus)
 
     # finally, vectorize the text samples into a 2D integer tensor
     tokenizer = Tokenizer(num_words=MAX_NUM_WORDS)
